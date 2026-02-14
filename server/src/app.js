@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
+import grievanceRoutes from "./routes/grievances.js";
 
 import errorHandler from "./middlewares/errorHandler.js";
 
@@ -33,7 +34,8 @@ app.get("/api/health", (req, res) => {
 //Other Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-
+app.use("/api/grievances", grievanceRoutes);
+app.use("/uploads", express.static("uploads"));
 
 // Error Handler
 app.use(errorHandler);

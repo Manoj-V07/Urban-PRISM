@@ -61,6 +61,11 @@ const grievanceSchema = new mongoose.Schema(
       required: true
     },
 
+    image_url: {
+      type: String,
+      required: true
+    },
+
     complaint_volume: {
       type: Number,
       default: 1
@@ -69,6 +74,12 @@ const grievanceSchema = new mongoose.Schema(
     asset_ref: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Asset"
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
     }
   },
   { timestamps: true }
