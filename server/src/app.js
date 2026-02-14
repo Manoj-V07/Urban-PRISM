@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import authRoutes from "./routes/auth.js";
+import userRoutes from "./routes/users.js";
 
 import errorHandler from "./middlewares/errorHandler.js";
 
@@ -27,6 +29,11 @@ app.get("/api/health", (req, res) => {
     time: new Date().toISOString()
   });
 });
+
+//Other Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+
 
 // Error Handler
 app.use(errorHandler);
