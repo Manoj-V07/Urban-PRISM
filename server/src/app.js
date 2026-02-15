@@ -7,6 +7,7 @@ import userRoutes from "./routes/users.js";
 import grievanceRoutes from "./routes/grievances.js";
 import clusterRoutes from "./routes/clusters.js";
 import riskRoutes from "./routes/risk.js";
+import dashboardRoutes from "./routes/dashboard.js";
 
 import errorHandler from "./middlewares/errorHandler.js";
 
@@ -40,6 +41,7 @@ app.use("/api/grievances", grievanceRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/clusters", clusterRoutes);
 app.use("/api/risk", riskRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 
 // Error Handler
 app.use(errorHandler);
