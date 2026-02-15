@@ -5,6 +5,7 @@ import morgan from "morgan";
 import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import grievanceRoutes from "./routes/grievances.js";
+import clusterRoutes from "./routes/clusters.js";
 
 import errorHandler from "./middlewares/errorHandler.js";
 
@@ -36,6 +37,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/grievances", grievanceRoutes);
 app.use("/uploads", express.static("uploads"));
+app.use("/api/clusters", clusterRoutes);
 
 // Error Handler
 app.use(errorHandler);

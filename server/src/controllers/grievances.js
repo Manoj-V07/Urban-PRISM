@@ -1,4 +1,5 @@
 import Grievance from "../models/grievance.js";
+import { processGrievance } from "../services/clusteringService.js";
 
 // Submit grievance
 export const createGrievance = async (req, res, next) => {
@@ -39,6 +40,10 @@ export const createGrievance = async (req, res, next) => {
       image_url: req.file.path,
       createdBy : req.user._id
     });
+
+    console.log("Triggering clustering...");
+    await processGrievance(grievance);
+    console.log("Clustering done");
 
     res.status(201).json(grievance);
   } catch (err) {
