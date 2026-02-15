@@ -10,6 +10,7 @@ import riskRoutes from "./routes/risk.js";
 import dashboardRoutes from "./routes/dashboard.js";
 
 import errorHandler from "./middlewares/errorHandler.js";
+import limiter from "./middlewares/rateLimiter.js";
 
 const app = express();
 
@@ -18,6 +19,8 @@ app.use(helmet());
 
 // CORS
 app.use(cors());
+
+app.use(limiter);
 
 // Body parser
 app.use(express.json());

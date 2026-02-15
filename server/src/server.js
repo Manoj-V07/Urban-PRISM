@@ -14,3 +14,9 @@ connectDB();
 app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT}`);
 });
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled:", err);
+  process.exit(1);
+});
+
