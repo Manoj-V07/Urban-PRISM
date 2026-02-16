@@ -8,7 +8,7 @@ import grievanceRoutes from "./routes/grievances.js";
 import clusterRoutes from "./routes/clusters.js";
 import riskRoutes from "./routes/risk.js";
 import dashboardRoutes from "./routes/dashboard.js";
-
+import { requestId } from "./middlewares/requestId.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import limiter from "./middlewares/rateLimiter.js";
 
@@ -20,6 +20,7 @@ app.use(helmet());
 // CORS
 app.use(cors());
 
+app.use(requestId);
 app.use(limiter);
 
 // Body parser
@@ -27,7 +28,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Logging
-app.use(morgan("dev"));
+morgan.token("id", (req) => req.requestId);
+app.use(morgan(":id :method :url :status :response-time ms"));
+
 
 // Health Check
 app.get("/api/health", (req, res) => {

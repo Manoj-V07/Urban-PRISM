@@ -2,15 +2,30 @@ import logger from "../config/logger.js";
 
 const errorHandler = (err, req, res, next) => {
 
-  logger.error(err.message, {
-    stack: err.stack,
-    url: req.originalUrl,
-    method: req.method
-  });
+  const status = err.status || 500;
 
-  res.status(err.status || 500).json({
+  // Build log context
+  const logData = {
+    requestId: req.requestId,
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+    user: req.user?._id || "anonymous",
+    status,
+    stack: err.stack
+  };
+
+  // Log with requestId
+  logger.error(`[${req.requestId}] ${err.message}`, logData);
+
+  // Safe response (no stack in prod)
+  res.status(status).json({
     success: false,
-    message: err.message || "Server Error"
+    requestId: req.requestId,
+    message:
+      status === 500
+        ? "Internal Server Error"
+        : err.message
   });
 };
 
