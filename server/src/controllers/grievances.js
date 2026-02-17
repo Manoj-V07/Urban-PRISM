@@ -1,11 +1,12 @@
 import Grievance from "../models/grievance.js";
 import { processGrievance } from "../services/clusteringService.js";
 import { sendEmail } from "../services/emailService.js";
-import User from "../models/user.js";
+import { analyzeComplaint } from "../services/aiService.js";
 
 // Submit grievance
 export const createGrievance = async (req, res, next) => {
   try {
+
     const {
       category,
       latitude,
@@ -22,9 +23,32 @@ export const createGrievance = async (req, res, next) => {
     if (!latitude || !longitude)
       return res.status(400).json({ message: "Location required" });
 
+
+    // ---------------- AI ANALYSIS ----------------
+    let aiResult = null;
+
+    try {
+      aiResult = await analyzeComplaint(complaint_text);
+    } catch (err) {
+      console.error("AI Analysis Failed:", err.message);
+    }
+    // ---------------------------------------------
+
+    const finalCategory = aiResult?.category || category;
+    const finalSeverity = aiResult?.severity || severity_level;
+
+    if (!finalCategory || !finalSeverity) {
+      return res.status(400).json({
+        message: "AI analysis failed and no manual category/severity provided",
+      });
+    }
+
     const grievance = await Grievance.create({
+
       grievance_id: crypto.randomUUID(),
-      category,
+
+      category: finalCategory,
+
       location: {
         type: "Point",
         coordinates: [
@@ -32,33 +56,46 @@ export const createGrievance = async (req, res, next) => {
           parseFloat(latitude)
         ]
       },
+
       district_name,
       ward_id,
+
       complaint_text,
+
+      // Store AI summary (optional field)
+      summary: aiResult?.summary || null,
+
       complaint_date: new Date(),
-      severity_level,
+
+      severity_level: finalSeverity,
+
       status: "Pending",
+
       complaint_volume: 1,
+
       image_url: req.file.path,
-      createdBy : req.user._id
+
+      createdBy: req.user._id
     });
+
 
     console.log("Triggering clustering...");
     await processGrievance(grievance);
     console.log("Clustering done");
 
     res.status(201).json(grievance);
+
   } catch (err) {
     next(err);
   }
 };
 
-// Citizen history
+
+// Citizen history / Admin view all
 export const getMyGrievances = async (req, res, next) => {
   try {
-    const grievances = await Grievance.find({
-      createdBy: req.user._id
-    });
+    const filter = req.user.role === "Admin" ? {} : { createdBy: req.user._id };
+    const grievances = await Grievance.find(filter).sort({ complaint_date: -1 });
 
     res.json(grievances);
   } catch (err) {

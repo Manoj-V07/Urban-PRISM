@@ -8,6 +8,7 @@ import grievanceRoutes from "./routes/grievances.js";
 import clusterRoutes from "./routes/clusters.js";
 import riskRoutes from "./routes/risk.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import aiRoutes from "./routes/ai.js";
 import { requestId } from "./middlewares/requestId.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import limiter from "./middlewares/rateLimiter.js";
@@ -48,6 +49,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/clusters", clusterRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/ai", aiRoutes);
 
 // Error Handler
 app.use(errorHandler);

@@ -1,9 +1,25 @@
 import { body } from "express-validator";
 
 export const grievanceValidator = [
-  body("category").notEmpty(),
-  body("district_name").notEmpty(),
-  body("ward_id").notEmpty(),
-  body("complaint_text").notEmpty(),
-  body("severity_level").isIn(["Low", "Medium", "High"])
+
+  body("district_name")
+    .notEmpty()
+    .withMessage("District required"),
+
+  body("ward_id")
+    .notEmpty()
+    .withMessage("Ward required"),
+
+  body("complaint_text")
+    .notEmpty()
+    .withMessage("Complaint text required"),
+
+  // OPTIONAL: AI can fill these
+  body("category")
+    .optional()
+    .notEmpty(),
+
+  body("severity_level")
+    .optional()
+    .isIn(["Low", "Medium", "High"])
 ];

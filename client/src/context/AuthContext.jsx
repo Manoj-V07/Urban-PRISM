@@ -1,8 +1,7 @@
-import { createContext, useState, useEffect } from "react";
+import { createContext, useState } from "react";
 import api from "../api/axios";
 import ENDPOINTS from "../api/endpoints";
 import {
-  getToken,
   setToken,
   removeToken,
   getUser,
@@ -17,14 +16,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const interceptor = api.interceptors.request.use((config) => {
-      const token = getToken();
-      if (token) config.headers.Authorization = `Bearer ${token}`;
-      return config;
-    });
-    return () => api.interceptors.request.eject(interceptor);
-  }, []);
+  // Auth interceptor is set up at module level in api/axios.js
+  // to avoid race conditions with child useEffect hooks.
 
   const login = async (email, password) => {
     setLoading(true);

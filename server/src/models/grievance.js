@@ -11,7 +11,8 @@ const grievanceSchema = new mongoose.Schema(
 
     category: {
       type: String,
-      required: true
+      required: false,
+      default : "Others"
     },
 
     location: {
@@ -52,7 +53,8 @@ const grievanceSchema = new mongoose.Schema(
     severity_level: {
       type: String,
       enum: ["Low", "Medium", "High"],
-      required: true
+      required: false,
+      default : "Low"
     },
 
     status: {
@@ -64,6 +66,10 @@ const grievanceSchema = new mongoose.Schema(
     image_url: {
       type: String,
       required: true
+    },
+
+    summary: {
+      type: String
     },
 
     complaint_volume: {
