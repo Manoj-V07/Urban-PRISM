@@ -49,14 +49,18 @@ export const processGrievance = async (grievance) => {
   }
 
   // STEP 4: Find nearest asset
-  const asset = await Asset.findOne({
-    location: {
-      $near: {
-        $geometry: grievance.location,
-        $maxDistance: 300
-      }
+const asset = await Asset.findOne({
+  ward_id: grievance.ward_id,
+  district_name: grievance.district_name,
+
+  location: {
+    $near: {
+      $geometry: grievance.location,
+      $maxDistance: 300
     }
-  });
+  }
+});
+;
 
   // STEP 5: Create new cluster
   const cluster = await Cluster.create({
