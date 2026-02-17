@@ -24,6 +24,8 @@ const Grievances = () => {
   const [toast, setToast] = useState(null);
   const [selectedGrievance, setSelectedGrievance] = useState(null);
   const [statusUpdate, setStatusUpdate] = useState("");
+  const [translating, setTranslating] = useState(false);
+  const [translatedText, setTranslatedText] = useState(null);
 
   const handleFormSuccess = () => {
     setShowForm(false);
@@ -47,6 +49,18 @@ const Grievances = () => {
         message: err.response?.data?.message || "Update failed",
         type: "error",
       });
+    }
+  };
+
+  const handleTranslate = async (text) => {
+    setTranslating(true);
+    try {
+      const { data } = await api.post(ENDPOINTS.AI.TRANSLATE, { text });
+      setTranslatedText(data.translated);
+    } catch {
+      setToast({ message: "Translation failed", type: "error" });
+    } finally {
+      setTranslating(false);
     }
   };
 
@@ -117,6 +131,11 @@ const Grievances = () => {
               <p className="grievance-text">
                 {truncateText(g.complaint_text, 120)}
               </p>
+              {g.summary && (
+                <p className="grievance-summary">
+                  <span className="ai-tag">🤖 AI</span> {g.summary}
+                </p>
+              )}
               <div className="grievance-card-footer">
                 <span
                   className="status-badge"
@@ -156,7 +175,10 @@ const Grievances = () => {
       {/* Detail Modal */}
       <Modal
         isOpen={!!selectedGrievance}
-        onClose={() => setSelectedGrievance(null)}
+        onClose={() => {
+          setSelectedGrievance(null);
+          setTranslatedText(null);
+        }}
         title="Complaint Details"
         size="lg"
       >
@@ -217,7 +239,26 @@ const Grievances = () => {
               <p className="detail-value">
                 {selectedGrievance.complaint_text}
               </p>
+              <button
+                className="btn btn-outline btn-sm translate-btn"
+                onClick={() => handleTranslate(selectedGrievance.complaint_text)}
+                disabled={translating}
+              >
+                {translating ? "Translating..." : "🌐 Translate to English"}
+              </button>
+              {translatedText && (
+                <div className="translated-box">
+                  <span className="detail-label">Translation</span>
+                  <p className="detail-value">{translatedText}</p>
+                </div>
+              )}
             </div>
+            {selectedGrievance.summary && (
+              <div className="detail-item full-width ai-summary-box">
+                <span className="detail-label">🤖 AI Summary</span>
+                <p className="detail-value">{selectedGrievance.summary}</p>
+              </div>
+            )}
             {selectedGrievance.image_url && (
               <div className="detail-item full-width">
                 <span className="detail-label">Image</span>

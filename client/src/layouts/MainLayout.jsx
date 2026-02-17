@@ -1,5 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+import Chatbot from "../components/chat/Chatbot";
 
 const MainLayout = () => {
   const { user, logout } = useAuth();
@@ -85,6 +86,7 @@ const MainLayout = () => {
       <main className="app-main">
         <Outlet />
       </main>
+      <Chatbot />
     </div>
   );
 };

@@ -1,15 +1,12 @@
 import { useState } from "react";
 import api from "../../api/axios";
 import ENDPOINTS from "../../api/endpoints";
-import { CATEGORIES, SEVERITY_LEVELS } from "../../utils/constants";
 
 const GrievanceForm = ({ onSuccess, onError }) => {
   const [form, setForm] = useState({
-    category: "",
     district_name: "",
     ward_id: "",
     complaint_text: "",
-    severity_level: "",
     latitude: "",
     longitude: "",
   });
@@ -58,11 +55,9 @@ const GrievanceForm = ({ onSuccess, onError }) => {
       });
       onSuccess?.(data);
       setForm({
-        category: "",
         district_name: "",
         ward_id: "",
         complaint_text: "",
-        severity_level: "",
         latitude: "",
         longitude: "",
       });
@@ -78,41 +73,11 @@ const GrievanceForm = ({ onSuccess, onError }) => {
 
   return (
     <form className="grievance-form" onSubmit={handleSubmit}>
+      <div className="ai-notice">
+        <span className="ai-notice-icon">🤖</span>
+        <span>Category, severity, and summary will be auto-detected by AI from your complaint text.</span>
+      </div>
       <div className="form-grid">
-        <div className="form-group">
-          <label>Category *</label>
-          <select
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select category</option>
-            {CATEGORIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-group">
-          <label>Severity *</label>
-          <select
-            name="severity_level"
-            value={form.severity_level}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select severity</option>
-            {SEVERITY_LEVELS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <div className="form-group">
           <label>District *</label>
           <input

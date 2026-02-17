@@ -24,6 +24,11 @@ const ENDPOINTS = {
     RISK_TREND: "/dashboard/risk-trend",
     COMPLAINTS: "/dashboard/complaints",
   },
+  AI: {
+    ANALYZE: "/ai/analyze",
+    TRANSLATE: "/ai/translate",
+    CHAT: "/ai/chat",
+  },
 };
 
 export default ENDPOINTS;
