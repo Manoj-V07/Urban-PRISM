@@ -28,17 +28,28 @@ export const runRiskEngine = async () => {
   const results = [];
 
   for (let c of clusters) {
+    const grievanceList = (c.grievance_ids || []).filter(Boolean);
+
+    if (!grievanceList.length) {
+      continue;
+    }
 
     // 1. Severity (average)
-    const sev =
-      c.grievance_ids.reduce((s, g) =>
-        s + severityMap[g.severity_level], 0
-      ) / c.grievance_ids.length;
+    const sevTotal = grievanceList.reduce((sum, grievance) => {
+      const weight = severityMap[grievance.severity_level] ?? severityMap.Low;
+      return sum + weight;
+    }, 0);
+
+    const sev = sevTotal / grievanceList.length;
 
     // 2. Recency (latest complaint)
-    const latest = Math.max(
-      ...c.grievance_ids.map(g => new Date(g.createdAt))
-    );
+    const complaintTimes = grievanceList
+      .map(grievance => new Date(grievance.createdAt).getTime())
+      .filter(time => Number.isFinite(time));
+
+    const latest = complaintTimes.length
+      ? Math.max(...complaintTimes)
+      : now;
 
     const days =
       (now - latest) / (1000 * 60 * 60 * 24);
@@ -79,9 +90,11 @@ export const runRiskEngine = async () => {
         0.15 * costScore
       ) * 100;
 
+    const finalRisk = Number.isFinite(risk) ? Math.round(risk) : 0;
+
     const record = await RiskHistory.create({
       cluster: c._id,
-      score: Math.round(risk),
+      score: finalRisk,
       breakdown: {
         severity: sev,
         recency: recencyScore,

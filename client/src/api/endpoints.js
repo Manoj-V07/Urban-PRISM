@@ -15,6 +15,9 @@ const ENDPOINTS = {
   CLUSTERS: {
     LIST: "/clusters",
   },
+  ASSETS: {
+    LIST: "/assets",
+  },
   RISK: {
     RUN: "/risk/run",
   },

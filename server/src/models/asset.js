@@ -62,6 +62,6 @@ assetSchema.index({ location: "2dsphere" });
 // Compound index
 assetSchema.index({ district_name: 1, ward_id: 1 });
 
-const Asset = mongoose.model("Asset", assetSchema);
+const Asset = mongoose.model("Asset", assetSchema, "assets_chennai_only");
 
 export default Asset;

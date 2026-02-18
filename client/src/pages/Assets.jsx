@@ -9,28 +9,25 @@ import AssetMarkers from "../components/map/AssetMarkers";
 import { formatDate, formatCurrency } from "../utils/formatters";
 
 const Assets = () => {
-  const { data: clusters, loading } = useFetch(ENDPOINTS.CLUSTERS.LIST);
+  const { data: assets = [], loading, error } = useFetch(ENDPOINTS.ASSETS.LIST);
   const [selectedAsset, setSelectedAsset] = useState(null);
 
   if (loading) return <Loader text="Loading assets..." />;
-
-  // Extract unique assets from clusters
-  const assetsMap = new Map();
-  clusters?.forEach((c) => {
-    if (c.asset_ref && !assetsMap.has(c.asset_ref._id)) {
-      assetsMap.set(c.asset_ref._id, c.asset_ref);
-    }
-  });
-  const assets = Array.from(assetsMap.values());
 
   return (
     <div className="assets-page">
       <div className="page-header">
         <h2>Infrastructure Assets</h2>
         <p className="text-muted">
-          {assets.length} assets linked to clusters
+          {assets.length} assets available
         </p>
       </div>
+
+      {error && (
+        <p className="text-danger" style={{ marginBottom: "1rem" }}>
+          {error}
+        </p>
+      )}
 
       <div
         className="map-wrapper"
