@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
-
+import fs from "fs";
+import { GoogleGenAI } from "@google/genai";
 
 // Lazy-init: Groq client is created on first use,
 // AFTER dotenv has loaded the env vars.
@@ -10,6 +11,15 @@ function getGroq() {
     groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   }
   return groq;
+}
+
+let genAI;
+
+function getGenAI() {
+  if (!genAI) {
+    genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  }
+  return genAI;
 }
 
 
@@ -206,4 +216,56 @@ Provide a helpful response based only on this system.
   });
 
   return completion.choices[0].message.content.trim();
+};
+
+export const verifyComplaintImage = async (imagePath, text) => {
+
+  // Read image
+  const imageBase64 = fs.readFileSync(imagePath, {
+    encoding: "base64"
+  });
+
+  const prompt = `
+Check whether this image matches the complaint text.
+
+Complaint:
+"${text}"
+
+Reply ONLY in JSON:
+
+{
+  "match": true or false,
+  "reason": "short explanation"
+}
+`;
+
+  const response = await getGenAI().models.generateContent({
+
+    model: "gemini-2.5-flash",
+
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: "image/jpeg",
+              data: imageBase64
+            }
+          }
+        ]
+      }
+    ]
+  });
+
+  const output = response.text;
+
+  const jsonMatch = output.match(/\{[\s\S]*\}/);
+
+  if (!jsonMatch) {
+    throw new Error("Invalid Gemini response");
+  }
+
+  return JSON.parse(jsonMatch[0]);
 };

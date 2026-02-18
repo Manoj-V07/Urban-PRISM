@@ -13,6 +13,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
   const [image, setImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
+  const [imageMismatch, setImageMismatch] = useState(null);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -42,6 +43,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
     e.preventDefault();
     if (!image) return onError?.("Please upload an image");
     setSubmitting(true);
+    setImageMismatch(null);
 
     try {
       const formData = new FormData();
@@ -63,9 +65,13 @@ const GrievanceForm = ({ onSuccess, onError }) => {
       });
       setImage(null);
     } catch (err) {
-      onError?.(
-        err.response?.data?.message || "Failed to submit grievance"
-      );
+      const resData = err.response?.data;
+
+      if (resData?.message === "Image does not match complaint" && resData?.reason) {
+        setImageMismatch(resData.reason);
+      } else {
+        onError?.(resData?.message || "Failed to submit grievance");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -77,6 +83,26 @@ const GrievanceForm = ({ onSuccess, onError }) => {
         <span className="ai-notice-icon">🤖</span>
         <span>Category, severity, and summary will be auto-detected by AI from your complaint text.</span>
       </div>
+
+      {imageMismatch && (
+        <div className="image-mismatch-alert">
+          <div className="image-mismatch-header">
+            <span className="image-mismatch-icon">⚠️</span>
+            <strong>Image does not match your complaint</strong>
+          </div>
+          <p className="image-mismatch-reason">{imageMismatch}</p>
+          <p className="image-mismatch-hint">
+            Please upload a relevant image that matches your complaint description and try again.
+          </p>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline image-mismatch-dismiss"
+            onClick={() => setImageMismatch(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
       <div className="form-grid">
         <div className="form-group">
           <label>District *</label>

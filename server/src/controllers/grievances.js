@@ -2,6 +2,7 @@ import Grievance from "../models/grievance.js";
 import { processGrievance } from "../services/clusteringService.js";
 import { sendEmail } from "../services/emailService.js";
 import { analyzeComplaint } from "../services/aiService.js";
+import { verifyComplaintImage } from "../services/aiService.js";
 
 // Submit grievance
 export const createGrievance = async (req, res, next) => {
@@ -40,6 +41,20 @@ export const createGrievance = async (req, res, next) => {
     if (!finalCategory || !finalSeverity) {
       return res.status(400).json({
         message: "AI analysis failed and no manual category/severity provided",
+      });
+    }
+
+    // Verify image vs text
+    const check = await verifyComplaintImage(
+      req.file.path,
+      complaint_text
+    );
+
+    if (!check.match) {
+      return res.status(400).json({
+        success: false,
+        message: "Image does not match complaint",
+        reason: check.reason
       });
     }
 

@@ -1207,6 +1207,58 @@ img {
   }
 }
 
+/* ===== Image Mismatch Alert ===== */
+.image-mismatch-alert {
+  background: #fff5f5;
+  border: 1px solid #fc8181;
+  border-left: 4px solid #e53e3e;
+  border-radius: var(--radius);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.image-mismatch-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #c53030;
+  font-size: 0.95rem;
+}
+
+.image-mismatch-icon {
+  font-size: 1.2rem;
+}
+
+.image-mismatch-reason {
+  color: #742a2a;
+  font-size: 0.88rem;
+  background: #fed7d7;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.image-mismatch-hint {
+  color: #9b2c2c;
+  font-size: 0.8rem;
+  margin: 0;
+  font-style: italic;
+}
+
+.image-mismatch-dismiss {
+  align-self: flex-start;
+  color: #c53030;
+  border-color: #fc8181;
+  font-size: 0.78rem;
+}
+
+.image-mismatch-dismiss:hover {
+  background: #fed7d7;
+}
+
 /* ===== AI Notice (Form) ===== */
 .ai-notice {
   display: flex;
