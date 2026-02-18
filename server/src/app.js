@@ -8,6 +8,7 @@ import grievanceRoutes from "./routes/grievances.js";
 import clusterRoutes from "./routes/clusters.js";
 import riskRoutes from "./routes/risk.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import assetRoutes from "./routes/assets.js";
 import aiRoutes from "./routes/ai.js";
 import { requestId } from "./middlewares/requestId.js";
 import errorHandler from "./middlewares/errorHandler.js";
@@ -52,6 +53,7 @@ app.use("/api/clusters", clusterRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/assets", assetRoutes);
 
 // Error Handler
 app.use(errorHandler);

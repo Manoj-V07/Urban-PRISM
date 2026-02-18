@@ -15,6 +15,12 @@ const ENDPOINTS = {
   CLUSTERS: {
     LIST: "/clusters",
   },
+  ASSETS: {
+    LIST: "/assets",
+    CREATE: "/assets",
+    BY_ID: (id) => `/assets/${id}`,
+    UPDATE: (id) => `/assets/${id}`,
+  },
   RISK: {
     RUN: "/risk/run",
   },
