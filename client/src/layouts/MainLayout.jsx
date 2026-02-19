@@ -39,6 +39,18 @@ const MainLayout = () => {
                 Grievances
               </Link>
               <Link
+                to="/tasks"
+                className={`nav-link ${isActive("/tasks") ? "active" : ""}`}
+              >
+                Tasks
+              </Link>
+              <Link
+                to="/workers"
+                className={`nav-link ${isActive("/workers") ? "active" : ""}`}
+              >
+                Workers
+              </Link>
+              <Link
                 to="/map"
                 className={`nav-link ${isActive("/map") ? "active" : ""}`}
               >
@@ -71,6 +83,16 @@ const MainLayout = () => {
                 className={`nav-link ${isActive("/grievances/new") ? "active" : ""}`}
               >
                 File Complaint
+              </Link>
+            </>
+          )}
+          {user?.role === "FieldWorker" && (
+            <>
+              <Link
+                to="/"
+                className={`nav-link ${isActive("/") ? "active" : ""}`}
+              >
+                My Tasks
               </Link>
             </>
           )}

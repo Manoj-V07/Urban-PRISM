@@ -8,9 +8,11 @@ const Register = () => {
     email: "",
     password: "",
     role: "Citizen",
+    phone: "",
   });
   const { register, loading, error } = useAuth();
   const navigate = useNavigate();
+  const [pendingMessage, setPendingMessage] = useState(null);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -18,8 +20,21 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await register(form.name, form.email, form.password, form.role);
-      navigate("/");
+      const data = await register(
+        form.name,
+        form.email,
+        form.password,
+        form.role,
+        form.phone
+      );
+      // FieldWorkers get a pending message instead of redirect
+      if (form.role === "FieldWorker" && !data.token) {
+        setPendingMessage(
+          data.message || "Registration successful. Your account is pending admin verification."
+        );
+      } else {
+        navigate("/");
+      }
     } catch {
       /* error is set in context */
     }
@@ -35,6 +50,9 @@ const Register = () => {
         </div>
         <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="alert alert-error">{error}</div>}
+          {pendingMessage && (
+            <div className="alert alert-success">{pendingMessage}</div>
+          )}
           <div className="form-group">
             <label>Full Name</label>
             <input
@@ -72,9 +90,21 @@ const Register = () => {
             <label>Role</label>
             <select name="role" value={form.role} onChange={handleChange}>
               <option value="Citizen">Citizen</option>
+              <option value="FieldWorker">Field Worker</option>
               <option value="Admin">Admin</option>
             </select>
           </div>
+          {form.role === "FieldWorker" && (
+            <div className="form-group">
+              <label>Phone Number</label>
+              <input
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                placeholder="+91 98765 43210"
+              />
+            </div>
+          )}
           <button
             type="submit"
             className="btn btn-primary btn-block"

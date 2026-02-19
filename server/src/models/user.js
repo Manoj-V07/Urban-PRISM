@@ -23,8 +23,29 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["Citizen", "Admin"],
+      enum: ["Citizen", "Admin", "FieldWorker"],
       default: "Citizen"
+    },
+
+    // FieldWorker-specific fields
+    isVerified: {
+      type: Boolean,
+      default: false
+    },
+
+    assignedDistrict: {
+      type: String,
+      default: null
+    },
+
+    currentWorkload: {
+      type: Number,
+      default: 0
+    },
+
+    phone: {
+      type: String,
+      default: null
     }
   },
   { timestamps: true }

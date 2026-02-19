@@ -10,6 +10,7 @@ import riskRoutes from "./routes/risk.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import assetRoutes from "./routes/assets.js";
 import aiRoutes from "./routes/ai.js";
+import taskRoutes from "./routes/tasks.js";
 import { requestId } from "./middlewares/requestId.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import limiter from "./middlewares/rateLimiter.js";
@@ -53,6 +54,7 @@ app.use("/api/clusters", clusterRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/tasks", taskRoutes);
 app.use("/api/assets", assetRoutes);
 
 // Error Handler

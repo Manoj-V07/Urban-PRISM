@@ -35,6 +35,19 @@ const ENDPOINTS = {
     TRANSLATE: "/ai/translate",
     CHAT: "/ai/chat",
   },
+  TASKS: {
+    LIST: "/tasks",
+    ASSIGN: "/tasks",
+    MY: "/tasks/my",
+    START: (id) => `/tasks/${id}/start`,
+    SUBMIT_PROOF: (id) => `/tasks/${id}/proof`,
+    APPROVE: (id) => `/tasks/${id}/approve`,
+    REJECT: (id) => `/tasks/${id}/reject`,
+    WORKERS: "/tasks/workers",
+    VERIFIED_WORKERS: "/tasks/workers/verified",
+    VERIFY_WORKER: (id) => `/tasks/workers/${id}/verify`,
+    REVOKE_WORKER: (id) => `/tasks/workers/${id}/revoke`,
+  },
 };
 
 export default ENDPOINTS;

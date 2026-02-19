@@ -40,19 +40,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, role = "Citizen") => {
+  const register = async (name, email, password, role = "Citizen", phone = "") => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post(ENDPOINTS.AUTH.REGISTER, {
-        name,
-        email,
-        password,
-        role,
-      });
-      setToken(data.token);
-      setUser(data);
-      setUserState(data);
+      const payload = { name, email, password, role };
+      if (role === "FieldWorker" && phone) payload.phone = phone;
+
+      const { data } = await api.post(ENDPOINTS.AUTH.REGISTER, payload);
+
+      // FieldWorkers don't get a token until verified
+      if (data.token) {
+        setToken(data.token);
+        setUser(data);
+        setUserState(data);
+      }
+
       return data;
     } catch (err) {
       const msg = err.response?.data?.message || "Registration failed";

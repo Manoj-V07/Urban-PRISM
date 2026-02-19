@@ -13,9 +13,16 @@ export const runRiskEngine = async () => {
 
   if (!clusters.length) return [];
 
+  // Filter out clusters with no valid grievances
+  const validClusters = clusters.filter(
+    c => c.grievance_ids && c.grievance_ids.length > 0
+  );
+
+  if (!validClusters.length) return [];
+
   // Collect ranges
-  const volumes = clusters.map(c => c.complaint_volume);
-  const costs = clusters.map(c => c.asset_ref?.estimated_repair_cost || 0);
+  const volumes = validClusters.map(c => c.complaint_volume || 0);
+  const costs = validClusters.map(c => c.asset_ref?.estimated_repair_cost || 0);
 
   const maxVol = Math.max(...volumes);
   const minVol = Math.min(...volumes);
@@ -27,18 +34,20 @@ export const runRiskEngine = async () => {
 
   const results = [];
 
-  for (let c of clusters) {
+  for (let c of validClusters) {
 
     // 1. Severity (average)
-    const sev =
-      c.grievance_ids.reduce((s, g) =>
-        s + severityMap[g.severity_level], 0
-      ) / c.grievance_ids.length;
+    const sevSum = c.grievance_ids.reduce((s, g) =>
+      s + (severityMap[g.severity_level] || 0), 0
+    );
+    const sev = sevSum / c.grievance_ids.length;
 
     // 2. Recency (latest complaint)
-    const latest = Math.max(
-      ...c.grievance_ids.map(g => new Date(g.createdAt))
-    );
+    const timestamps = c.grievance_ids
+      .map(g => new Date(g.createdAt).getTime())
+      .filter(t => !isNaN(t));
+
+    const latest = timestamps.length > 0 ? Math.max(...timestamps) : now;
 
     const days =
       (now - latest) / (1000 * 60 * 60 * 24);
