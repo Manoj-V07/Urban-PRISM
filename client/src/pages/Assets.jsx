@@ -23,7 +23,6 @@ const Assets = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [editAsset, setEditAsset] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -116,7 +115,6 @@ const Assets = () => {
   };
 
   if (loading && assets.length === 0) return <Loader text="Loading assets..." />;
-
   return (
     <div className="assets-page">
       {toast && (

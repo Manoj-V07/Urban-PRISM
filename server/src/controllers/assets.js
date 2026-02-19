@@ -1,20 +1,17 @@
 import Asset from "../models/asset.js";
 
-
 /**
  * Create Asset (Admin Only)
  * POST /api/assets
  */
 export const createAsset = async (req, res, next) => {
   try {
-
     const asset = await Asset.create(req.body);
 
     res.status(201).json({
       success: true,
-      asset
+      asset,
     });
-
   } catch (err) {
     next(err);
   }
@@ -28,7 +25,6 @@ export const createAsset = async (req, res, next) => {
  */
 export const getAssets = async (req, res, next) => {
   try {
-
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
 
@@ -45,9 +41,8 @@ export const getAssets = async (req, res, next) => {
       success: true,
       total,
       page,
-      assets
+      assets,
     });
-
   } catch (err) {
     next(err);
   }
@@ -61,21 +56,19 @@ export const getAssets = async (req, res, next) => {
  */
 export const getAssetById = async (req, res, next) => {
   try {
-
     const asset = await Asset.findById(req.params.id);
 
     if (!asset) {
       return res.status(404).json({
         success: false,
-        message: "Asset not found"
+        message: "Asset not found",
       });
     }
 
     res.json({
       success: true,
-      asset
+      asset,
     });
-
   } catch (err) {
     next(err);
   }
@@ -89,25 +82,22 @@ export const getAssetById = async (req, res, next) => {
  */
 export const updateAsset = async (req, res, next) => {
   try {
-
-    const asset = await Asset.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const asset = await Asset.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!asset) {
       return res.status(404).json({
         success: false,
-        message: "Asset not found"
+        message: "Asset not found",
       });
     }
 
     res.json({
       success: true,
-      asset
+      asset,
     });
-
   } catch (err) {
     next(err);
   }
@@ -121,25 +111,20 @@ export const updateAsset = async (req, res, next) => {
  */
 export const deleteAsset = async (req, res, next) => {
   try {
-
     const asset = await Asset.findByIdAndDelete(req.params.id);
 
     if (!asset) {
       return res.status(404).json({
         success: false,
-        message: "Asset not found"
+        message: "Asset not found",
       });
     }
 
     res.json({
       success: true,
-      message: "Asset deleted successfully"
+      message: "Asset deleted successfully",
     });
-
   } catch (err) {
     next(err);
   }
 };
-
-
-

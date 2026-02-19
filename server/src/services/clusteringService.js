@@ -1,5 +1,6 @@
 import Cluster from "../models/cluster.js";
 import Asset from "../models/asset.js";
+import Grievance from "../models/grievance.js";
 
 const MAX_DISTANCE = 100;
 const TIME_WINDOW = 7;
@@ -48,21 +49,50 @@ export const processGrievance = async (grievance) => {
     return nearby;
   }
 
-  // STEP 4: Find nearest asset
-const asset = await Asset.findOne({
-  ward_id: grievance.ward_id,
-  district_name: grievance.district_name,
+  // STEP 4: Find another unclustered grievance nearby.
+  // Create cluster only when there are at least 2 grievances.
+  const existingClusteredIds = await Cluster.distinct("grievance_ids");
 
-  location: {
-    $near: {
-      $geometry: grievance.location,
-      $maxDistance: 300
+  const partner = await Grievance.findOne({
+    _id: {
+      $ne: grievance._id,
+      $nin: existingClusteredIds
+    },
+    category: grievance.category,
+    ward_id: grievance.ward_id,
+    district_name: grievance.district_name,
+    createdAt: {
+      $gte: new Date(
+        Date.now() - TIME_WINDOW * 24 * 60 * 60 * 1000
+      )
+    },
+    location: {
+      $near: {
+        $geometry: grievance.location,
+        $maxDistance: MAX_DISTANCE
+      }
     }
-  }
-});
-;
+  });
 
-  // STEP 5: Create new cluster
+  if (!partner) {
+    console.log("No nearby partner found. Cluster not created for:", grievance._id);
+    return null;
+  }
+
+  // STEP 5: Find nearest asset
+  const asset = await Asset.findOne({
+    ward_id: grievance.ward_id,
+    district_name: grievance.district_name,
+
+    location: {
+      $near: {
+        $geometry: grievance.location,
+        $maxDistance: 300
+      }
+    }
+  });
+
+  // STEP 6: Create new cluster with 2 grievances
   const cluster = await Cluster.create({
 
     category: grievance.category,
@@ -72,9 +102,11 @@ const asset = await Asset.findOne({
     district_name: grievance.district_name,
     ward_id: grievance.ward_id,
 
-    grievance_ids: [grievance._id],
+    grievance_ids: [partner._id, grievance._id],
 
-    complaint_volume: grievance.complaint_volume,
+    complaint_volume:
+      (partner.complaint_volume || 1) +
+      (grievance.complaint_volume || 1),
 
     asset_ref: asset ? asset._id : null
   });

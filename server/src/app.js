@@ -6,9 +6,9 @@ import authRoutes from "./routes/auth.js";
 import userRoutes from "./routes/users.js";
 import grievanceRoutes from "./routes/grievances.js";
 import clusterRoutes from "./routes/clusters.js";
+import assetRoutes from "./routes/assets.js";
 import riskRoutes from "./routes/risk.js";
 import dashboardRoutes from "./routes/dashboard.js";
-import assetRoutes from "./routes/assets.js";
 import aiRoutes from "./routes/ai.js";
 import taskRoutes from "./routes/tasks.js";
 import { requestId } from "./middlewares/requestId.js";
@@ -51,11 +51,15 @@ app.use("/api/users", userRoutes);
 app.use("/api/grievances", grievanceRoutes);
 app.use("/uploads", express.static("uploads"));
 app.use("/api/clusters", clusterRoutes);
+app.use("/api/assets", assetRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ai", aiRoutes);
+<<<<<<< HEAD
 app.use("/api/tasks", taskRoutes);
 app.use("/api/assets", assetRoutes);
+=======
+>>>>>>> 08414de6831be7cde320b410c5baba4540e02a6e
 
 // Error Handler
 app.use(errorHandler);
