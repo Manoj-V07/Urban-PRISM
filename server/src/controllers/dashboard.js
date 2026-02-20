@@ -5,14 +5,26 @@ import Grievance from "../models/grievance.js";
 
 // Top risk clusters
 export const getTopRisks = async (req, res) => {
-
-  const risks = await RiskHistory.find()
-    .sort({ score: -1 })
-    .limit(10)
+  const history = await RiskHistory.find()
+    .sort({ createdAt: -1 })
     .populate({
       path: "cluster",
       populate: { path: "asset_ref" }
     });
+
+  const latestByCluster = new Map();
+
+  for (const record of history) {
+    const clusterId = String(record.cluster?._id || record.cluster || "");
+    if (!clusterId || latestByCluster.has(clusterId)) {
+      continue;
+    }
+    latestByCluster.set(clusterId, record);
+  }
+
+  const risks = Array.from(latestByCluster.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
 
   res.json(risks);
 };

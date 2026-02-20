@@ -19,13 +19,23 @@ const getGrievanceIcon = (severity) => {
 const GrievanceMarkers = ({ grievances }) => {
   if (!grievances?.length) return null;
 
+  const uniqueGrievances = [];
+  const seenIds = new Set();
+
+  grievances.forEach((grievance) => {
+    const id = String(grievance?._id || "");
+    if (!id || seenIds.has(id)) return;
+    seenIds.add(id);
+    uniqueGrievances.push(grievance);
+  });
+
   return (
     <>
-      {grievances.map((g) => {
+      {uniqueGrievances.map((g) => {
         if (!g?.location?.coordinates) return null;
         return (
           <Marker
-            key={g._id}
+            key={`${g._id}-${g.grievance_id || "marker"}`}
             position={[
               g.location.coordinates[1],
               g.location.coordinates[0],

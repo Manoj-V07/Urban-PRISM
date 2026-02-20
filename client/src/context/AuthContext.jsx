@@ -40,16 +40,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, role = "Citizen") => {
+  const register = async (name, email, password, role = "Citizen", workerCategory = null) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.post(ENDPOINTS.AUTH.REGISTER, {
-        name,
-        email,
-        password,
-        role,
-      });
+      const payload = { name, email, password, role };
+      if (role === "FieldWorker" && workerCategory) {
+        payload.workerCategory = workerCategory;
+      }
+      const { data } = await api.post(ENDPOINTS.AUTH.REGISTER, payload);
+
+      // Field workers are not auto-verified, don't log them in fully
+      if (data.role === "FieldWorker" && !data.isVerified) {
+        return data; // caller can show "pending verification" message
+      }
+
       setToken(data.token);
       setUser(data);
       setUserState(data);

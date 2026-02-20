@@ -14,6 +14,7 @@ export const removeUser = () => localStorage.removeItem("user");
 
 export const isAdmin = (user) => user?.role === "Admin";
 export const isCitizen = (user) => user?.role === "Citizen";
+export const isFieldWorker = (user) => user?.role === "FieldWorker";
 
 export const getRiskLevel = (score) => {
   if (score >= 70) return { label: "Critical", color: "#ef4444" };

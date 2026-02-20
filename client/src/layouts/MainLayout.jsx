@@ -56,6 +56,28 @@ const MainLayout = () => {
               >
                 Assets
               </Link>
+              <Link
+                to="/field-workers"
+                className={`nav-link ${isActive("/field-workers") ? "active" : ""}`}
+              >
+                Workers
+              </Link>
+              <Link
+                to="/task-assignments"
+                className={`nav-link ${isActive("/task-assignments") ? "active" : ""}`}
+              >
+                Tasks
+              </Link>
+            </>
+          )}
+          {user?.role === "FieldWorker" && (
+            <>
+              <Link
+                to="/"
+                className={`nav-link ${isActive("/") ? "active" : ""}`}
+              >
+                My Tasks
+              </Link>
             </>
           )}
           {user?.role === "Citizen" && (

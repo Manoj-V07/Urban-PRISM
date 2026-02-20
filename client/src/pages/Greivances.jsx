@@ -14,6 +14,40 @@ import Modal from "../components/common/Modal";
 import Loader from "../components/common/Loader";
 import Toast from "../components/common/Toast";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+const dedupeGrievances = (items = []) => {
+  const seen = new Set();
+  const output = [];
+
+  for (const grievance of items) {
+    if (!grievance) continue;
+    const id = String(grievance._id || grievance.grievance_id || "");
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    output.push(grievance);
+  }
+
+  return output;
+};
+
+const buildGrievanceImageUrl = (imagePath) => {
+  if (!imagePath) return "";
+
+  const normalized = String(imagePath).replace(/\\/g, "/");
+
+  if (/^https?:\/\//i.test(normalized)) {
+    return normalized;
+  }
+
+  const uploadsIndex = normalized.toLowerCase().lastIndexOf("/uploads/");
+  const relative = uploadsIndex !== -1
+    ? normalized.slice(uploadsIndex + 1)
+    : normalized.replace(/^\/+/, "");
+
+  return `${API_BASE_URL}/${relative}`;
+};
+
 const Grievances = () => {
   const { user } = useAuth();
   const isAdmin = user?.role === "Admin";
@@ -26,6 +60,7 @@ const Grievances = () => {
   const [statusUpdate, setStatusUpdate] = useState("");
   const [translating, setTranslating] = useState(false);
   const [translatedText, setTranslatedText] = useState(null);
+  const grievanceList = dedupeGrievances(grievances || []);
 
   const handleFormSuccess = () => {
     setShowForm(false);
@@ -72,7 +107,7 @@ const Grievances = () => {
         <div>
           <h2>{isAdmin ? "All Grievances" : "My Complaints"}</h2>
           <p className="text-muted">
-            {grievances?.length || 0} total complaints
+            {grievanceList.length || 0} total complaints
           </p>
         </div>
         {!isAdmin && (
@@ -95,7 +130,7 @@ const Grievances = () => {
 
       {/* Grievance Cards */}
       <div className="grievance-list">
-        {!grievances || grievances.length === 0 ? (
+        {!grievanceList || grievanceList.length === 0 ? (
           <div className="empty-state">
             <p>No complaints found.</p>
             {!isAdmin && (
@@ -108,9 +143,9 @@ const Grievances = () => {
             )}
           </div>
         ) : (
-          grievances.map((g) => (
+          grievanceList.map((g) => (
             <div
-              key={g._id}
+              key={`${g._id}-${g.grievance_id || "row"}`}
               className="grievance-card"
               onClick={() => {
                 setSelectedGrievance(g);
@@ -263,9 +298,13 @@ const Grievances = () => {
               <div className="detail-item full-width">
                 <span className="detail-label">Image</span>
                 <img
-                  src={`http://localhost:5000/${selectedGrievance.image_url}`}
+                  src={buildGrievanceImageUrl(selectedGrievance.image_url)}
                   alt="Grievance"
                   className="grievance-image"
+                  onError={(e) => {
+                    console.error('Image load error:', e.target.src);
+                    e.target.style.display = 'none';
+                  }}
                 />
               </div>
             )}

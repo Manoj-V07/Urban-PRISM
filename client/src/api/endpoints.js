@@ -15,6 +15,11 @@ const ENDPOINTS = {
   CLUSTERS: {
     LIST: "/clusters",
   },
+  ASSETS: {
+    LIST: "/assets",
+    CREATE: "/assets",
+    UPDATE: (id) => `/assets/${id}`,
+  },
   RISK: {
     RUN: "/risk/run",
   },
@@ -28,6 +33,22 @@ const ENDPOINTS = {
     ANALYZE: "/ai/analyze",
     TRANSLATE: "/ai/translate",
     CHAT: "/ai/chat",
+  },
+  FIELD_WORKERS: {
+    LIST: "/field-workers",
+    ELIGIBLE: "/field-workers/eligible",
+    VERIFY: (id) => `/field-workers/${id}/verify`,
+    REJECT: (id) => `/field-workers/${id}/reject`,
+    UPDATE_LOCATION: "/field-workers/location",
+  },
+  TASKS: {
+    ASSIGN: "/task-assignments",
+    LIST: "/task-assignments",
+    MY: "/task-assignments/my",
+    START: (id) => `/task-assignments/${id}/start`,
+    COMPLETE: (id) => `/task-assignments/${id}/complete`,
+    VERIFY: (id) => `/task-assignments/${id}/verify`,
+    REJECT: (id) => `/task-assignments/${id}/reject`,
   },
 };
 

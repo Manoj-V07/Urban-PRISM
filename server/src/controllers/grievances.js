@@ -1,8 +1,26 @@
 import Grievance from "../models/grievance.js";
 import { processGrievance } from "../services/clusteringService.js";
-import { sendEmail } from "../services/emailService.js";
+import {
+  sendGrievanceAcknowledgement,
+  sendGrievanceStatusUpdate
+} from "../services/emailService.js";
 import { analyzeComplaint } from "../services/aiService.js";
 import { verifyComplaintImage } from "../services/aiService.js";
+
+function normalizeImagePath(filePath) {
+  if (!filePath) {
+    return null;
+  }
+
+  const normalized = String(filePath).replace(/\\/g, "/");
+  const uploadsIndex = normalized.toLowerCase().lastIndexOf("/uploads/");
+
+  if (uploadsIndex !== -1) {
+    return normalized.slice(uploadsIndex + 1);
+  }
+
+  return normalized.replace(/^\/+/, "");
+}
 
 // Submit grievance
 export const createGrievance = async (req, res, next) => {
@@ -88,7 +106,7 @@ export const createGrievance = async (req, res, next) => {
 
       complaint_volume: 1,
 
-      image_url: req.file.path,
+      image_url: normalizeImagePath(req.file.path),
 
       createdBy: req.user._id
     });
@@ -97,6 +115,22 @@ export const createGrievance = async (req, res, next) => {
     console.log("Triggering clustering...");
     await processGrievance(grievance);
     console.log("Clustering done");
+
+    try {
+      await sendGrievanceAcknowledgement({
+        to: req.user.email,
+        name: req.user.name || "Citizen",
+        grievanceId: grievance.grievance_id,
+        category: grievance.category,
+        severity: grievance.severity_level,
+        status: grievance.status,
+        districtName: grievance.district_name,
+        wardId: grievance.ward_id,
+        complaintDate: grievance.complaint_date
+      });
+    } catch (mailErr) {
+      console.error("Acknowledgement email failed:", mailErr.message);
+    }
 
     res.status(201).json(grievance);
 
@@ -122,6 +156,12 @@ export const getMyGrievances = async (req, res, next) => {
 export const updateStatus = async (req, res, next) => {
 
   try {
+    const nextStatus = req.body.status;
+    const allowedStatuses = ["Pending", "In Progress", "Resolved"];
+
+    if (!allowedStatuses.includes(nextStatus)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
 
     const grievance = await Grievance
       .findById(req.params.id)
@@ -130,21 +170,22 @@ export const updateStatus = async (req, res, next) => {
     if (!grievance)
       return res.status(404).json({ message: "Not found" });
 
-    grievance.status = req.body.status;
+    if (grievance.status === nextStatus)
+      return res.json(grievance);
+
+    grievance.status = nextStatus;
 
     await grievance.save();
 
     // Try sending email (non-blocking)
     try {
 
-      await sendEmail(
-        grievance.createdBy.email,
-        "Grievance Status Updated",
-        `
-        <h3>Status Updated</h3>
-        <p>Your complaint is now: <b>${grievance.status}</b></p>
-        `
-      );
+      await sendGrievanceStatusUpdate({
+        to: grievance.createdBy.email,
+        name: grievance.createdBy.name || "Citizen",
+        grievanceId: grievance.grievance_id,
+        status: grievance.status
+      });
 
     } catch (mailErr) {
 

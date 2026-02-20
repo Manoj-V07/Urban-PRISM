@@ -23,12 +23,52 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["Citizen", "Admin"],
+      enum: ["Citizen", "Admin", "FieldWorker"],
       default: "Citizen"
+    },
+
+    // ── Field-worker-specific fields ──
+    workerCategory: {
+      type: String,
+      enum: [
+        "Electrician",
+        "Plumber",
+        "Road Maintenance",
+        "Drainage Worker",
+        "Sanitation Worker"
+      ],
+      required: function () {
+        return this.role === "FieldWorker";
+      }
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: function () {
+        return this.role !== "FieldWorker"; // citizens & admins are auto-verified
+      }
+    },
+
+    // live location of field worker (updated periodically)
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"]
+      },
+      coordinates: {
+        type: [Number] // [lng, lat]
+      }
+    },
+
+    activeTaskCount: {
+      type: Number,
+      default: 0
     }
   },
   { timestamps: true }
 );
+
+userSchema.index({ location: "2dsphere" });
 
 // Hash password
 userSchema.pre("save", async function () {

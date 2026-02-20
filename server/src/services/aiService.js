@@ -8,7 +8,13 @@ let groq;
 
 function getGroq() {
   if (!groq) {
-    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const apiKey = (process.env.GROQ_API_KEY || "").trim();
+
+    if (!apiKey) {
+      throw new Error("GROQ API key is not configured");
+    }
+
+    groq = new Groq({ apiKey });
   }
   return groq;
 }
@@ -17,10 +23,25 @@ let genAI;
 
 function getGenAI() {
   if (!genAI) {
-    genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+
+    if (!apiKey) {
+      throw new Error("Gemini API key is not configured");
+    }
+
+    genAI = new GoogleGenAI({ apiKey });
   }
   return genAI;
 }
+
+const generateWithGemini = async (prompt) => {
+  const response = await getGenAI().models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt
+  });
+
+  return (response.text || "").trim();
+};
 
 
 /**
@@ -45,18 +66,24 @@ Return:
 }
 `;
 
-  const completion = await getGroq().chat.completions.create({
+  let output;
 
-    model: "llama-3.1-8b-instant",
+  try {
+    const completion = await getGroq().chat.completions.create({
 
-    messages: [
-      { role: "user", content: prompt }
-    ],
+      model: "llama-3.1-8b-instant",
 
-    temperature: 0.2
-  });
+      messages: [
+        { role: "user", content: prompt }
+      ],
 
-  const output = completion.choices[0].message.content;
+      temperature: 0.2
+    });
+
+    output = completion.choices[0].message.content;
+  } catch {
+    output = await generateWithGemini(prompt);
+  }
 
   const jsonMatch = output.match(/\{[\s\S]*\}/);
 
@@ -82,18 +109,22 @@ Text:
 "${text}"
 `;
 
-  const completion = await getGroq().chat.completions.create({
+  try {
+    const completion = await getGroq().chat.completions.create({
 
-    model: "llama-3.1-8b-instant",
+      model: "llama-3.1-8b-instant",
 
-    messages: [
-      { role: "user", content: prompt }
-    ],
+      messages: [
+        { role: "user", content: prompt }
+      ],
 
-    temperature: 0
-  });
+      temperature: 0
+    });
 
-  return completion.choices[0].message.content.trim();
+    return completion.choices[0].message.content.trim();
+  } catch {
+    return await generateWithGemini(prompt);
+  }
 };
 
 
@@ -194,6 +225,7 @@ SYSTEM RULES
 - Be polite, professional, and clear
 - Keep answers concise
 - If unsure, say "Please contact system administrator"
+- Make the answers well aligned and structured line by line for better readability(If it contains lists, make sure to use bullet points or numbering)
 
 --------------------------------------------------
 USER QUESTION
@@ -204,18 +236,22 @@ USER QUESTION
 Provide a helpful response based only on this system.
 `;
 
-  const completion = await getGroq().chat.completions.create({
+  try {
+    const completion = await getGroq().chat.completions.create({
 
-    model: "llama-3.1-8b-instant",
+      model: "llama-3.1-8b-instant",
 
-    messages: [
-      { role: "user", content: prompt }
-    ],
+      messages: [
+        { role: "user", content: prompt }
+      ],
 
-    temperature: 0.3
-  });
+      temperature: 0.3
+    });
 
-  return completion.choices[0].message.content.trim();
+    return completion.choices[0].message.content.trim();
+  } catch {
+    return await generateWithGemini(prompt);
+  }
 };
 
 export const verifyComplaintImage = async (imagePath, text) => {

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import useFetch from "../hooks/useFetch";
 import ENDPOINTS from "../api/endpoints";
 import MapContainer from "../components/map/MapContainer";
+import FitBounds from "../components/map/FitBounds";
 import HeatmapLayer from "../components/map/HeatmapLayer";
-import GrievanceMarkers from "../components/map/GrievanceMarkers";
+import ClusterMarkers from "../components/map/ClusterMarkers";
 import AssetMarkers from "../components/map/AssetMarkers";
 import Loader from "../components/common/Loader";
 
@@ -14,18 +15,30 @@ const MapView = () => {
   const { data: topRisks } = useFetch(ENDPOINTS.DASHBOARD.TOP_RISKS);
   const [layer, setLayer] = useState("heatmap");
 
+  // All hooks must be called before any early returns
+  const clusterList = useMemo(() => {
+    return Array.isArray(clusters) ? clusters : [];
+  }, [clusters]);
+
+  const assets = useMemo(() => {
+    const assetsMap = new Map();
+    clusterList.forEach((c) => {
+      if (c.asset_ref && !assetsMap.has(c.asset_ref._id)) {
+        assetsMap.set(c.asset_ref._id, c.asset_ref);
+      }
+    });
+    return Array.from(assetsMap.values());
+  }, [clusterList]);
+
+  const bounds = useMemo(() => {
+    const coords = clusterList
+      .filter((c) => c?.location?.coordinates)
+      .map((c) => [c.location.coordinates[1], c.location.coordinates[0]]);
+    
+    return coords.length >= 2 ? coords : null;
+  }, [clusterList]);
+
   if (loadingClusters) return <Loader text="Loading map data..." />;
-
-  const allGrievances =
-    clusters?.flatMap((c) => c.grievance_ids || []) || [];
-
-  const assetsMap = new Map();
-  clusters?.forEach((c) => {
-    if (c.asset_ref && !assetsMap.has(c.asset_ref._id)) {
-      assetsMap.set(c.asset_ref._id, c.asset_ref);
-    }
-  });
-  const assets = Array.from(assetsMap.values());
 
   return (
     <div className="map-page">
@@ -61,11 +74,12 @@ const MapView = () => {
 
       <div className="map-wrapper">
         <MapContainer>
+          {bounds && <FitBounds bounds={bounds} />}
           {(layer === "heatmap" || layer === "all") && (
-            <HeatmapLayer clusters={clusters} riskScores={topRisks} />
+            <HeatmapLayer clusters={clusterList} riskScores={topRisks} />
           )}
           {(layer === "markers" || layer === "all") && (
-            <GrievanceMarkers grievances={allGrievances} />
+            <ClusterMarkers clusters={clusterList} />
           )}
           {(layer === "assets" || layer === "all") && (
             <AssetMarkers assets={assets} />

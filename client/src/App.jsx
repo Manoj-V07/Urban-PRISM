@@ -10,6 +10,9 @@ import Grievances from "./pages/Greivances";
 import MapView from "./pages/MapView";
 import Analytics from "./pages/Analytics";
 import Assets from "./pages/Assets";
+import FieldWorkers from "./pages/FieldWorkers";
+import TaskAssignments from "./pages/TaskAssignments";
+import MyTasks from "./pages/MyTasks";
 import NotFound from "./pages/NotFound";
 import useAuth from "./hooks/useAuth";
 import "./styles/index.css";
@@ -38,7 +41,13 @@ const AppRoutes = () => {
         <Route
           index
           element={
-            user?.role === "Admin" ? <Dashboard /> : <Grievances />
+            user?.role === "Admin" ? (
+              <Dashboard />
+            ) : user?.role === "FieldWorker" ? (
+              <MyTasks />
+            ) : (
+              <Grievances />
+            )
           }
         />
         <Route path="grievances" element={<Grievances />} />
@@ -64,6 +73,30 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute adminOnly>
               <Assets />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="field-workers"
+          element={
+            <ProtectedRoute adminOnly>
+              <FieldWorkers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="task-assignments"
+          element={
+            <ProtectedRoute adminOnly>
+              <TaskAssignments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="my-tasks"
+          element={
+            <ProtectedRoute>
+              <MyTasks />
             </ProtectedRoute>
           }
         />

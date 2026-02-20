@@ -2,7 +2,25 @@ export const SEVERITY_LEVELS = ["Low", "Medium", "High"];
 
 export const GRIEVANCE_STATUSES = ["Pending", "In Progress", "Resolved"];
 
-export const USER_ROLES = { CITIZEN: "Citizen", ADMIN: "Admin" };
+export const USER_ROLES = { CITIZEN: "Citizen", ADMIN: "Admin", FIELD_WORKER: "FieldWorker" };
+
+export const WORKER_CATEGORIES = [
+  "Electrician",
+  "Plumber",
+  "Road Maintenance",
+  "Drainage Worker",
+  "Sanitation Worker"
+];
+
+export const TASK_STATUSES = ["Assigned", "In Progress", "Completed", "Verified", "Rejected"];
+
+export const TASK_STATUS_COLORS = {
+  Assigned: "#f59e0b",
+  "In Progress": "#3b82f6",
+  Completed: "#8b5cf6",
+  Verified: "#22c55e",
+  Rejected: "#ef4444"
+};
 
 export const SEVERITY_COLORS = {
   Low: "#22c55e",

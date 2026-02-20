@@ -22,7 +22,7 @@ const Analytics = () => {
   }
 
   return (
-    <div className="analytics-page">
+    <div className="analytics-page ">
       <div className="page-header">
         <h2>Analytics</h2>
         <p className="text-muted">

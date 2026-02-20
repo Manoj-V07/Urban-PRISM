@@ -97,6 +97,6 @@ grievanceSchema.index({ location: "2dsphere" });
 // Compound index for filtering
 grievanceSchema.index({ category: 1, status: 1 });
 
-const Grievance = mongoose.model("Grievance", grievanceSchema);
+const Grievance = mongoose.model("Grievance", grievanceSchema, "grievances_chennai_only");
 
 export default Grievance;

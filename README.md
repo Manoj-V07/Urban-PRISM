@@ -107,12 +107,15 @@ Coordinates are generated district-wise with controlled GPS variations to suppor
 - Submit grievance with location (Map-based picker)
 - Upload images
 - Track complaint status
+- Receive grievance acknowledgement email on submission
 - Receive email notification on status updates
 
 ### Admin Module
 
 - View all grievances
 - View infrastructure assets
+- Add new infrastructure assets
+- Edit existing infrastructure assets
 - Filter by district, ward, category
 - View interactive maps
 - View priority ranking
