@@ -19,7 +19,7 @@ export const TASK_STATUS_COLORS = {
   "In Progress": "#3b82f6",
   Completed: "#8b5cf6",
   Verified: "#22c55e",
-  Rejected: "#ef4444"
+  Rejected: "#ef4444",
 };
 
 export const SEVERITY_COLORS = {

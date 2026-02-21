@@ -6,7 +6,8 @@ import {
   getTopRisks,
   getSummary,
   getRiskTrend,
-  getComplaintStats
+  getComplaintStats,
+  triggerClusterAlert
 } from "../controllers/dashboard.js";
 
 const router = express.Router();
@@ -18,5 +19,7 @@ router.get("/summary", auth, role("Admin"), getSummary);
 router.get("/risk-trend", auth, role("Admin"), getRiskTrend);
 
 router.get("/complaints", auth, role("Admin"), getComplaintStats);
+
+router.post("/send-alert", auth, role("Admin"), triggerClusterAlert);
 
 export default router;

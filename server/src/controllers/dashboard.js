@@ -1,6 +1,7 @@
 import Cluster from "../models/cluster.js";
 import RiskHistory from "../models/riskHistory.js";
 import Grievance from "../models/grievance.js";
+import { sendClusterAlertToAdmins } from "../services/clusterAlertService.js";
 
 
 // Top risk clusters
@@ -38,11 +39,29 @@ export const getSummary = async (req, res) => {
   const active = await Cluster.countDocuments({ status: "Active" });
 
   const byCategory = await Cluster.aggregate([
-    { $group: { _id: "$category", count: { $sum: 1 } } }
+    {
+      $group: {
+        _id: "$category",
+        count: { $sum: 1 },
+        totalComplaints: { $sum: "$complaint_volume" },
+        oldestCluster: { $min: "$createdAt" },
+        newestCluster: { $max: "$createdAt" },
+      },
+    },
+    { $sort: { totalComplaints: -1 } },
   ]);
 
   const byWard = await Cluster.aggregate([
-    { $group: { _id: "$ward_id", count: { $sum: 1 } } }
+    {
+      $group: {
+        _id: "$ward_id",
+        count: { $sum: 1 },
+        totalComplaints: { $sum: "$complaint_volume" },
+        oldestCluster: { $min: "$createdAt" },
+        newestCluster: { $max: "$createdAt" },
+      },
+    },
+    { $sort: { totalComplaints: -1 } },
   ]);
 
   res.json({
@@ -84,10 +103,22 @@ export const getRiskTrend = async (req, res) => {
 };
 
 
+// Manually trigger cluster alert email (for demo / testing)
+export const triggerClusterAlert = async (req, res) => {
+  try {
+    await sendClusterAlertToAdmins();
+    res.json({ success: true, message: "Cluster alert email sent to all admins." });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
 // Complaint frequency (monthly)
 export const getComplaintStats = async (req, res) => {
 
   const stats = await Grievance.aggregate([
+    { $match: { createdAt: { $exists: true, $ne: null } } },
     {
       $group: {
         _id: {
@@ -96,11 +127,19 @@ export const getComplaintStats = async (req, res) => {
             date: "$createdAt"
           }
         },
-
-        count: { $sum: 1 }
+        count: { $sum: 1 },
+        pending: {
+          $sum: { $cond: [{ $ne: ["$status", "Resolved"] }, 1, 0] },
+        },
+        resolved: {
+          $sum: { $cond: [{ $eq: ["$status", "Resolved"] }, 1, 0] },
+        },
+        highSeverity: {
+          $sum: { $cond: [{ $eq: ["$severity_level", "High"] }, 1, 0] },
+        },
+        oldestComplaint: { $min: "$createdAt" },
       }
     },
-
     { $sort: { _id: 1 } }
   ]);
 

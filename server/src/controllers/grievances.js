@@ -135,6 +135,41 @@ export const createGrievance = async (req, res, next) => {
     res.status(201).json(grievance);
 
   } catch (err) {
+    // Send failure email
+    try {
+      if (req.user && req.user.email) {
+        await sendEmail(
+          req.user.email,
+          "Grievance Registration Failed",
+          `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #f44336;">✗ Grievance Registration Failed</h2>
+            <p>Dear ${req.user.name},</p>
+            <p>Unfortunately, we encountered an error while processing your complaint.</p>
+            
+            <div style="background-color: #ffebee; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f44336;">
+              <p><strong>Error:</strong> ${err.message || 'Unknown error occurred'}</p>
+            </div>
+            
+            <p>Please try submitting your complaint again. If the problem persists, contact our support team.</p>
+            
+            <p><strong>Tips for successful submission:</strong></p>
+            <ul>
+              <li>Ensure you've uploaded a clear image</li>
+              <li>Provide accurate location details</li>
+              <li>Write a detailed description of the issue</li>
+            </ul>
+            
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+            <p style="color: #666; font-size: 12px;">This is an automated email from Urban-PRISM. Please do not reply to this email.</p>
+          </div>
+          `
+        );
+        console.log("Failure email sent to:", req.user.email);
+      }
+    } catch (mailErr) {
+      console.error("Failed to send failure email:", mailErr.message);
+    }
     next(err);
   }
 };
@@ -187,9 +222,12 @@ export const updateStatus = async (req, res, next) => {
         status: grievance.status
       });
 
+      console.log("Status update email sent to:", grievance.createdBy.email);
+
     } catch (mailErr) {
 
       console.error("Email failed:", mailErr.message);
+      console.error("Email error details:", mailErr);
       // Optional: log to DB later
     }
 

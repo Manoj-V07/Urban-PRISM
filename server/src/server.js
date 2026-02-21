@@ -12,11 +12,14 @@ dotenv.config({ path: path.resolve(__dirname, "../.env") });
 import app from "./app.js";
 import connectDB from "./config/db.js";
 import logger from "./config/logger.js";
+import { startScheduler } from "./jobs/scheduler.js";
 
 const PORT = process.env.PORT || 5000;
 
-// Connect DB
-connectDB();
+// Connect DB then start server & scheduler
+connectDB().then(() => {
+  startScheduler();
+});
 
 // Start Server
 app.listen(PORT, () => {

@@ -14,6 +14,7 @@ const Register = () => {
   const [pendingVerification, setPendingVerification] = useState(false);
   const { register, loading, error } = useAuth();
   const navigate = useNavigate();
+  const [pendingMessage, setPendingMessage] = useState(null);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -74,6 +75,9 @@ const Register = () => {
         </div>
         <form onSubmit={handleSubmit} className="auth-form">
           {error && <div className="alert alert-error">{error}</div>}
+          {pendingMessage && (
+            <div className="alert alert-success">{pendingMessage}</div>
+          )}
           <div className="form-group">
             <label>Full Name</label>
             <input

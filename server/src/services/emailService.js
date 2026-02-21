@@ -88,7 +88,7 @@ const renderAcknowledgementTemplate = ({
 }) => {
   return `
     <div style="font-family: Arial, Helvetica, sans-serif; color: #2b2f33; line-height: 1.6; max-width: 760px; margin: 0 auto;">
-      <h2 style="margin: 0 0 18px; color: #3fa752; font-size: 38px; font-weight: 700;">✓ Grievance Registered Successfully</h2>
+      <h2 style="margin: 0 0 18px; color: #3fa752; font-size: 38px; font-weight: 700;">Grievance Registered Successfully</h2>
       <p style="margin: 0 0 12px; font-size: 34px;">Dear ${name},</p>
       <p style="margin: 0 0 24px; font-size: 33px;">Your complaint has been successfully registered in our system.</p>
 

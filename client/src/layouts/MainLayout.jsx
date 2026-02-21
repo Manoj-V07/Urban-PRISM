@@ -96,6 +96,16 @@ const MainLayout = () => {
               </Link>
             </>
           )}
+          {user?.role === "FieldWorker" && (
+            <>
+              <Link
+                to="/"
+                className={`nav-link ${isActive("/") ? "active" : ""}`}
+              >
+                My Tasks
+              </Link>
+            </>
+          )}
         </nav>
         <div className="header-user">
           <span className="user-name">{user?.name}</span>

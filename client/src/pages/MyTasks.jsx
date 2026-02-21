@@ -149,7 +149,7 @@ const MyTasks = () => {
 
               <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
                 <strong>Grievance:</strong>{" "}
-                {task.grievance?.grievance_id || "—"}
+                {task.grievance?.grievance_id || "\u2014"}
               </p>
               <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
                 <strong>Location:</strong>{" "}
@@ -248,8 +248,8 @@ const MyTasks = () => {
             ) : (
               completedTasks.map((task) => (
                 <tr key={task._id}>
-                  <td>{task.grievance?.grievance_id || "—"}</td>
-                  <td>{task.grievance?.category || "—"}</td>
+                  <td>{task.grievance?.grievance_id || "\u2014"}</td>
+                  <td>{task.grievance?.category || "\u2014"}</td>
                   <td>
                     <span
                       className="badge"
@@ -264,7 +264,7 @@ const MyTasks = () => {
                   <td>
                     {task.completedAt
                       ? new Date(task.completedAt).toLocaleString()
-                      : "—"}
+                      : "\u2014"}
                   </td>
                 </tr>
               ))

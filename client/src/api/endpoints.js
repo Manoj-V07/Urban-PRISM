@@ -18,6 +18,7 @@ const ENDPOINTS = {
   ASSETS: {
     LIST: "/assets",
     CREATE: "/assets",
+    BY_ID: (id) => `/assets/${id}`,
     UPDATE: (id) => `/assets/${id}`,
   },
   RISK: {
@@ -28,6 +29,7 @@ const ENDPOINTS = {
     SUMMARY: "/dashboard/summary",
     RISK_TREND: "/dashboard/risk-trend",
     COMPLAINTS: "/dashboard/complaints",
+    SEND_ALERT: "/dashboard/send-alert",
   },
   AI: {
     ANALYZE: "/ai/analyze",

@@ -4,7 +4,7 @@ import useAuth from "../hooks/useAuth";
 import ENDPOINTS from "../api/endpoints";
 import api from "../api/axios";
 import RiskTable from "../components/dashboard/RiskTable";
-import { BarChart, TrendChart } from "../components/dashboard/Charts";
+import { BarChart, TrendChart, ComplaintSummary } from "../components/dashboard/Charts";
 import Loader from "../components/common/Loader";
 import Modal from "../components/common/Modal";
 import AssetForm from "../components/forms/AssetForm";
@@ -23,6 +23,7 @@ const Dashboard = () => {
   const { data: trend } = useFetch(ENDPOINTS.DASHBOARD.RISK_TREND);
   const { data: complaints } = useFetch(ENDPOINTS.DASHBOARD.COMPLAINTS);
   const [running, setRunning] = useState(false);
+  const [sendingAlert, setSendingAlert] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
 
   const handleRunRisk = async () => {
@@ -38,6 +39,18 @@ const Dashboard = () => {
     }
   };
 
+  const handleSendAlert = async () => {
+    setSendingAlert(true);
+    try {
+      const { data } = await api.post(ENDPOINTS.DASHBOARD.SEND_ALERT);
+      alert(data.message || "Alert sent!");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to send alert");
+    } finally {
+      setSendingAlert(false);
+    }
+  };
+
   if (loadingRisks || loadingSummary) {
     return <Loader text="Loading dashboard..." />;
   }
@@ -49,13 +62,22 @@ const Dashboard = () => {
           <h2>Dashboard</h2>
           <p className="text-muted">Welcome back, {user?.name}</p>
         </div>
-        <button
-          className="btn btn-primary"
-          onClick={handleRunRisk}
-          disabled={running}
-        >
-          {running ? "Running..." : "⚡ Run Risk Engine"}
-        </button>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            className="btn btn-primary"
+            onClick={handleRunRisk}
+            disabled={running}
+          >
+            {running ? "Running..." : "⚡ Run Risk Engine"}
+          </button>
+          <button
+            className="btn btn-danger"
+            onClick={handleSendAlert}
+            disabled={sendingAlert}
+          >
+            {sendingAlert ? "Sending..." : "📧 Send Cluster Alert"}
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -103,30 +125,29 @@ const Dashboard = () => {
           <BarChart
             data={summary?.byCategory}
             labelKey="_id"
-            valueKey="count"
+            valueKey="totalComplaints"
             title="Clusters by Category"
             color="#6366f1"
+            variant="category"
           />
         </div>
       </div>
 
       <div className="charts-row">
         <div className="chart-card">
-          <BarChart
+          <ComplaintSummary
             data={complaints}
-            labelKey="_id"
-            valueKey="count"
             title="Monthly Complaints"
-            color="#f59e0b"
           />
         </div>
         <div className="chart-card">
           <BarChart
             data={summary?.byWard}
             labelKey="_id"
-            valueKey="count"
+            valueKey="totalComplaints"
             title="Clusters by Ward"
             color="#14b8a6"
+            variant="ward"
           />
         </div>
       </div>

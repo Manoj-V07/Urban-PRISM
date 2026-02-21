@@ -13,9 +13,16 @@ export const runRiskEngine = async () => {
 
   if (!clusters.length) return [];
 
+  // Filter out clusters with no valid grievances
+  const validClusters = clusters.filter(
+    c => c.grievance_ids && c.grievance_ids.length > 0
+  );
+
+  if (!validClusters.length) return [];
+
   // Collect ranges
-  const volumes = clusters.map(c => c.complaint_volume);
-  const costs = clusters.map(c => c.asset_ref?.estimated_repair_cost || 0);
+  const volumes = validClusters.map(c => c.complaint_volume || 0);
+  const costs = validClusters.map(c => c.asset_ref?.estimated_repair_cost || 0);
 
   const maxVol = Math.max(...volumes);
   const minVol = Math.min(...volumes);
