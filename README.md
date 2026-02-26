@@ -249,6 +249,22 @@ npm run import
 
 Ensure MongoDB has 2dsphere index on asset location.
 
+## Login Credentials
+
+Use the login credentials to sign in
+
+Admin 
+Email : suriya@gmail.com
+Password : 123456
+
+User 
+Email : jayasuriyajs45@gmail.com
+Password : 123456
+
+Field-Worker
+Email : kanwalkishore24@gmail.com
+Password : 123456
+
 ## Future Enhancements
 
 - Predictive maintenance using machine learning
