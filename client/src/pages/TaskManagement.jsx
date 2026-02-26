@@ -1,6 +1,6 @@
 import { useState } from "react";
 import useFetch from "../hooks/useFetch";
-import api from "../api/axios";
+import api, { API_ORIGIN } from "../api/axios";
 import ENDPOINTS from "../api/endpoints";
 import { TASK_STATUS_COLORS, SEVERITY_COLORS } from "../utils/constants";
 import { formatDate, formatDateTime, truncateText } from "../utils/formatters";
@@ -336,7 +336,7 @@ const TaskManagement = () => {
               <div className="detail-item full-width">
                 <span className="detail-label">Grievance Image</span>
                 <img
-                  src={`http://localhost:5000/${selectedTask.grievance.image_url}`}
+                  src={`${API_ORIGIN}/${selectedTask.grievance.image_url}`}
                   alt="Grievance"
                   className="grievance-image"
                 />
@@ -348,7 +348,7 @@ const TaskManagement = () => {
               <div className="detail-item full-width">
                 <span className="detail-label">Proof Image</span>
                 <img
-                  src={`http://localhost:5000/${selectedTask.proofImageUrl}`}
+                  src={`${API_ORIGIN}/${selectedTask.proofImageUrl}`}
                   alt="Proof of completion"
                   className="grievance-image"
                 />

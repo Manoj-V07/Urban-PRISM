@@ -1,13 +1,11 @@
 import { useState } from "react";
 import useFetch from "../hooks/useFetch";
-import api from "../api/axios";
+import api, { API_ORIGIN } from "../api/axios";
 import ENDPOINTS from "../api/endpoints";
 import { TASK_STATUS_COLORS } from "../utils/constants";
 import Modal from "../components/common/Modal";
 import Loader from "../components/common/Loader";
 import Toast from "../components/common/Toast";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const buildImageUrl = (imagePath) => {
   if (!imagePath) return "";
@@ -18,7 +16,7 @@ const buildImageUrl = (imagePath) => {
     uploadsIndex !== -1
       ? normalized.slice(uploadsIndex + 1)
       : normalized.replace(/^\/+/, "");
-  return `${API_BASE_URL}/${relative}`;
+  return `${API_ORIGIN}/${relative}`;
 };
 
 const MyTasks = () => {
