@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import fs from "fs";
+import path from "path";
 import { GoogleGenAI } from "@google/genai";
 
 // Lazy-init: Groq client is created on first use,
@@ -304,4 +305,118 @@ Reply ONLY in JSON:
   }
 
   return JSON.parse(jsonMatch[0]);
+};
+
+const mimeFromPath = (filePath) => {
+  const ext = path.extname(String(filePath || "")).toLowerCase();
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".gif") return "image/gif";
+  return "image/jpeg";
+};
+
+export const verifyTaskCompletionProof = async ({
+  proofImagePath,
+  complaintText,
+  complaintImagePath,
+  assetReferenceImagePath,
+  assetType,
+  assetId
+}) => {
+  if (!proofImagePath || !fs.existsSync(proofImagePath)) {
+    throw new Error("Proof image is missing for verification");
+  }
+
+  if (!complaintImagePath || !fs.existsSync(complaintImagePath)) {
+    throw new Error("Complaint image is missing for verification");
+  }
+
+  if (!assetReferenceImagePath || !fs.existsSync(assetReferenceImagePath)) {
+    throw new Error("Asset reference image is missing for verification");
+  }
+
+  const proofBase64 = fs.readFileSync(proofImagePath, { encoding: "base64" });
+  const complaintBase64 = fs.readFileSync(complaintImagePath, { encoding: "base64" });
+  const assetBase64 = fs.readFileSync(assetReferenceImagePath, { encoding: "base64" });
+
+  const prompt = `
+You are verifying field-worker task completion proof for an urban infrastructure complaint.
+
+Inputs:
+1) complaint image (original citizen complaint)
+2) asset reference image (fixed canonical image for this asset)
+3) worker proof image (uploaded as completed work)
+4) complaint text
+
+Complaint text:
+"${complaintText || ""}"
+
+Asset metadata:
+- asset_id: ${assetId || "unknown"}
+- asset_type: ${assetType || "unknown"}
+
+Decision policy:
+- matchesComplaint is true only if the worker proof clearly corresponds to the same issue/location implied by complaint text and complaint image.
+- matchesAsset is true only if the worker proof clearly belongs to the same physical asset as the asset reference image.
+- verified is true only when BOTH matchesComplaint and matchesAsset are true.
+
+Return ONLY valid JSON:
+{
+  "verified": true or false,
+  "matchesComplaint": true or false,
+  "matchesAsset": true or false,
+  "confidence": 0-100,
+  "reason": "short explanation"
+}
+`;
+
+  const response = await getGenAI().models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: mimeFromPath(complaintImagePath),
+              data: complaintBase64
+            }
+          },
+          {
+            inlineData: {
+              mimeType: mimeFromPath(assetReferenceImagePath),
+              data: assetBase64
+            }
+          },
+          {
+            inlineData: {
+              mimeType: mimeFromPath(proofImagePath),
+              data: proofBase64
+            }
+          }
+        ]
+      }
+    ]
+  });
+
+  const output = response.text || "";
+  const jsonMatch = output.match(/\{[\s\S]*\}/);
+
+  if (!jsonMatch) {
+    throw new Error("Invalid image verification response");
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+
+  return {
+    verified: Boolean(parsed.verified),
+    matchesComplaint: Boolean(parsed.matchesComplaint),
+    matchesAsset: Boolean(parsed.matchesAsset),
+    confidence: Number.isFinite(Number(parsed.confidence))
+      ? Math.max(0, Math.min(100, Number(parsed.confidence)))
+      : 0,
+    reason: String(parsed.reason || "Image verification completed"),
+    model: "gemini-2.5-flash"
+  };
 };

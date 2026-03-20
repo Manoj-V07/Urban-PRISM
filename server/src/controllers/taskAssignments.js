@@ -2,8 +2,16 @@ import TaskAssignment from "../models/taskAssignment.js";
 import Grievance from "../models/grievance.js";
 import Asset from "../models/asset.js";
 import User from "../models/user.js";
+import path from "path";
+import { fileURLToPath } from "url";
 import { mapGrievanceCategoryToWorker } from "./fieldWorkers.js";
 import { sendEmail } from "../services/emailService.js";
+import { verifyComplaintImage, verifyTaskCompletionProof } from "../services/aiService.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadsRoot = path.resolve(__dirname, "../../uploads");
+const ASSET_MATCH_DISTANCE = 1000;
 
 function normalizeImagePath(filePath) {
   if (!filePath) return null;
@@ -11,6 +19,84 @@ function normalizeImagePath(filePath) {
   const uploadsIndex = normalized.toLowerCase().lastIndexOf("/uploads/");
   if (uploadsIndex !== -1) return normalized.slice(uploadsIndex + 1);
   return normalized.replace(/^\/+/, "");
+}
+
+function resolveStoredImagePath(storedPath) {
+  if (!storedPath) return null;
+  const normalized = String(storedPath).replace(/\\/g, "/");
+  if (/^https?:\/\//i.test(normalized)) return null;
+
+  const uploadsMarker = "/uploads/";
+  const uploadsIndex = normalized.toLowerCase().lastIndexOf(uploadsMarker);
+
+  let relative =
+    uploadsIndex !== -1
+      ? normalized.slice(uploadsIndex + uploadsMarker.length)
+      : normalized.replace(/^\/+/, "");
+
+  relative = relative.replace(/^uploads\//i, "");
+  if (!relative) return null;
+
+  return path.resolve(uploadsRoot, relative);
+}
+
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildDistrictRegex(districtName) {
+  if (!districtName) return null;
+  const cleaned = String(districtName).trim();
+  if (!cleaned) return null;
+  return new RegExp(`^${escapeRegex(cleaned)}$`, "i");
+}
+
+async function findNearestAssetForGrievance(grievance) {
+  if (!grievance?.location) return null;
+
+  const nearFilter = {
+    location: {
+      $near: {
+        $geometry: grievance.location,
+        $maxDistance: ASSET_MATCH_DISTANCE
+      }
+    }
+  };
+
+  const districtRegex = buildDistrictRegex(grievance.district_name);
+
+  if (districtRegex) {
+    const exactWardAndDistrict = await Asset.findOne({
+      ward_id: grievance.ward_id,
+      district_name: districtRegex,
+      ...nearFilter
+    });
+    if (exactWardAndDistrict) return exactWardAndDistrict;
+  }
+
+  const sameWardNearby = await Asset.findOne({
+    ward_id: grievance.ward_id,
+    ...nearFilter
+  });
+  if (sameWardNearby) return sameWardNearby;
+
+  if (districtRegex) {
+    const sameDistrictNearby = await Asset.findOne({
+      district_name: districtRegex,
+      ...nearFilter
+    });
+    if (sameDistrictNearby) return sameDistrictNearby;
+  }
+
+  const sameWardFallback = await Asset.findOne({ ward_id: grievance.ward_id });
+  if (sameWardFallback) return sameWardFallback;
+
+  if (districtRegex) {
+    const sameDistrictFallback = await Asset.findOne({ district_name: districtRegex });
+    if (sameDistrictFallback) return sameDistrictFallback;
+  }
+
+  return null;
 }
 
 // ── Admin: assign a grievance to a field worker ──
@@ -158,7 +244,8 @@ export const startTask = async (req, res, next) => {
 // ── Field worker: complete task with proof image ──
 export const completeTask = async (req, res, next) => {
   try {
-    const assignment = await TaskAssignment.findById(req.params.id);
+    const assignment = await TaskAssignment.findById(req.params.id)
+      .populate("grievance", "_id grievance_id complaint_text image_url asset_ref category");
 
     if (!assignment)
       return res.status(404).json({ message: "Assignment not found" });
@@ -171,6 +258,95 @@ export const completeTask = async (req, res, next) => {
 
     if (!req.file)
       return res.status(400).json({ message: "Proof image is required" });
+
+    if (!assignment.grievance) {
+      return res.status(400).json({ message: "Assignment has no linked grievance" });
+    }
+
+    let grievanceDoc = await Grievance.findById(assignment.grievance._id).select(
+      "_id grievance_id complaint_text image_url asset_ref category ward_id district_name location"
+    );
+
+    if (!grievanceDoc) {
+      return res.status(400).json({ message: "Linked grievance not found" });
+    }
+
+    // Backward compatibility for legacy grievances: auto-map a nearest asset when missing.
+    if (!grievanceDoc.asset_ref) {
+      const nearestAsset = await findNearestAssetForGrievance(grievanceDoc);
+      if (nearestAsset) {
+        grievanceDoc.asset_ref = nearestAsset._id;
+        await grievanceDoc.save();
+      }
+    }
+
+    const asset = grievanceDoc.asset_ref
+      ? await Asset.findById(grievanceDoc.asset_ref).select(
+      "asset_id asset_type reference_image_url"
+    )
+      : null;
+
+    const proofImagePath = req.file.path;
+    const complaintImagePath = resolveStoredImagePath(assignment.grievance.image_url);
+    const assetReferenceImagePath = asset?.reference_image_url
+      ? resolveStoredImagePath(asset.reference_image_url)
+      : null;
+
+    let verification;
+    const canRunStrictAssetVerification = Boolean(asset && assetReferenceImagePath);
+
+    if (canRunStrictAssetVerification) {
+      try {
+        verification = await verifyTaskCompletionProof({
+          proofImagePath,
+          complaintText: assignment.grievance.complaint_text,
+          complaintImagePath,
+          assetReferenceImagePath,
+          assetType: asset.asset_type,
+          assetId: asset.asset_id
+        });
+      } catch (verifyErr) {
+        return res.status(503).json({
+          message: `Proof image verification failed: ${verifyErr.message}`
+        });
+      }
+    } else {
+      try {
+        const complaintCheck = await verifyComplaintImage(
+          proofImagePath,
+          assignment.grievance.complaint_text
+        );
+
+        verification = {
+          verified: Boolean(complaintCheck.match),
+          matchesComplaint: Boolean(complaintCheck.match),
+          matchesAsset: null,
+          confidence: complaintCheck.match ? 70 : 20,
+          reason: complaintCheck.match
+            ? "Verified against complaint context (asset reference image unavailable)"
+            : complaintCheck.reason || "Proof does not match complaint context",
+          model: "gemini-2.5-flash"
+        };
+      } catch (verifyErr) {
+        return res.status(503).json({
+          message: `Proof image verification failed: ${verifyErr.message}`
+        });
+      }
+    }
+
+    assignment.aiVerification = {
+      ...verification,
+      checkedAt: new Date()
+    };
+
+    if (!verification.verified) {
+      await assignment.save();
+
+      return res.status(400).json({
+        message: `Proof image did not pass verification: ${verification.reason}`,
+        verification
+      });
+    }
 
     assignment.proofImageUrl = normalizeImagePath(req.file.path);
     assignment.completionNotes = req.body.notes || "";

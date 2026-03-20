@@ -177,3 +177,40 @@ export const sendGrievanceStatusUpdate = async ({
     })
   });
 };
+
+export const sendSLABreachNotification = async ({
+  recipient_email,
+  recipient_name,
+  grievance_id,
+  category,
+  severity,
+  breach_hours,
+  complaint_text,
+  ward_id,
+  escalation_rule_name
+}) => {
+  const breachDuration = breach_hours < 24
+    ? `${breach_hours} hour${breach_hours !== 1 ? 's' : ''}`
+    : `${(breach_hours / 24).toFixed(1)} day${breach_hours / 24 !== 1 ? 's' : ''}`;
+
+  return await sendEmail({
+    to: recipient_email,
+    subject: `🚨 SLA BREACH ALERT - Grievance ${grievance_id}`,
+    text: `URGENT: Grievance ${grievance_id} has breached its SLA by ${breachDuration}. Severity: ${severity}. Category: ${category}. Ward: ${ward_id}. Escalation: ${escalation_rule_name}.`,
+    html: renderEmailTemplate({
+      title: "🚨 SLA Breach Alert",
+      greetingName: recipient_name,
+      intro: `A critical SLA breach has been detected and automatically escalated.`,
+      infoRows: [
+        { label: "Grievance ID", value: grievance_id, emphasize: true },
+        { label: "Category", value: category },
+        { label: "Severity", value: severity },
+        { label: "Ward ID", value: ward_id },
+        { label: "Complaint", value: complaint_text.substring(0, 100) + "..." },
+        { label: "Breach Duration", value: breachDuration, emphasize: true },
+        { label: "Escalation Rule", value: escalation_rule_name }
+      ],
+      footer: "Please log in to Urban PRISM immediately and take action to resolve this grievance."
+    })
+  });
+};

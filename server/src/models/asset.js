@@ -51,6 +51,11 @@ const assetSchema = new mongoose.Schema(
     service_radius: {
       type: Number,
       required: true
+    },
+
+    reference_image_url: {
+      type: String,
+      default: null
     }
   },
   { timestamps: true }

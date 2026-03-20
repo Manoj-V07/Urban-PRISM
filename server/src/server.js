@@ -13,11 +13,21 @@ import app from "./app.js";
 import connectDB from "./config/db.js";
 import logger from "./config/logger.js";
 import { startScheduler } from "./jobs/scheduler.js";
+import { initializeDefaultSLARules } from "./services/slaEngineService.js";
+import { initializeDefaultEscalationRules } from "./services/slaEscalationService.js";
 
 const PORT = process.env.PORT || 5000;
 
 // Connect DB then start server & scheduler
-connectDB().then(() => {
+connectDB().then(async () => {
+  // Initialize default SLA and escalation rules
+  try {
+    await initializeDefaultSLARules();
+    await initializeDefaultEscalationRules();
+  } catch (err) {
+    logger.error("Error initializing SLA/Escalation rules:", err.message);
+  }
+
   startScheduler();
 });
 

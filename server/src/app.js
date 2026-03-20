@@ -14,6 +14,8 @@ import dashboardRoutes from "./routes/dashboard.js";
 import aiRoutes from "./routes/ai.js";
 import fieldWorkerRoutes from "./routes/fieldWorkers.js";
 import taskAssignmentRoutes from "./routes/taskAssignments.js";
+import publicRoutes from "./routes/public.js";
+import slaRoutes from "./routes/sla.js";
 import { requestId } from "./middlewares/requestId.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import limiter from "./middlewares/rateLimiter.js";
@@ -66,6 +68,8 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/field-workers", fieldWorkerRoutes);
 app.use("/api/task-assignments", taskAssignmentRoutes);
+app.use("/api/public", publicRoutes);
+app.use("/api/sla", slaRoutes);
 
 // Error Handler
 app.use(errorHandler);
