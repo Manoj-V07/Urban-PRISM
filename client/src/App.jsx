@@ -14,6 +14,7 @@ import FieldWorkers from "./pages/FieldWorkers";
 import TaskAssignments from "./pages/TaskAssignments";
 import MyTasks from "./pages/MyTasks";
 import NotFound from "./pages/NotFound";
+import PublicTracker from "./pages/PublicTracker";
 import useAuth from "./hooks/useAuth";
 import "./styles/index.css";
 
@@ -30,6 +31,8 @@ const AppRoutes = () => {
         path="/register"
         element={user ? <Navigate to="/" /> : <Register />}
       />
+      <Route path="/track" element={<PublicTracker />} />
+      <Route path="/track/:grievanceId" element={<PublicTracker />} />
       <Route
         path="/"
         element={

@@ -52,6 +52,10 @@ const ENDPOINTS = {
     VERIFY: (id) => `/task-assignments/${id}/verify`,
     REJECT: (id) => `/task-assignments/${id}/reject`,
   },
+  PUBLIC: {
+    TRACK: (grievanceId) => `/public/track/${encodeURIComponent(grievanceId)}`,
+    FEEDBACK: "/public/feedback",
+  },
 };
 
 export default ENDPOINTS;

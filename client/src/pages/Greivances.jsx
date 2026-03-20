@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 import api, { API_ORIGIN } from "../api/axios";
@@ -48,6 +49,7 @@ const buildGrievanceImageUrl = (imagePath) => {
 
 const Grievances = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === "Admin";
   const { data: grievances, loading, refetch } = useFetch(
     ENDPOINTS.GRIEVANCES.MY
@@ -58,14 +60,13 @@ const Grievances = () => {
   const [statusUpdate, setStatusUpdate] = useState("");
   const [translating, setTranslating] = useState(false);
   const [translatedText, setTranslatedText] = useState(null);
+  const [newSubmission, setNewSubmission] = useState(null);
   const grievanceList = dedupeGrievances(grievances || []);
 
-  const handleFormSuccess = () => {
+  const handleFormSuccess = (createdGrievance) => {
     setShowForm(false);
-    setToast({
-      message: "Complaint submitted successfully!",
-      type: "success",
-    });
+    setToast({ message: "Complaint submitted successfully!", type: "success" });
+    setNewSubmission(createdGrievance || null);
     refetch();
   };
 
@@ -161,6 +162,9 @@ const Grievances = () => {
                   {g.severity_level}
                 </span>
               </div>
+              <p style={{ margin: "0.25rem 0", fontSize: "0.85rem", color: "#6b7280" }}>
+                ID: <strong>{g.grievance_id || "N/A"}</strong>
+              </p>
               <p className="grievance-text">
                 {truncateText(g.complaint_text, 120)}
               </p>
@@ -185,6 +189,21 @@ const Grievances = () => {
                   Ward: {g.ward_id}
                 </span>
               </div>
+              {!isAdmin && (
+                <div style={{ marginTop: "0.7rem", display: "flex", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/track/${encodeURIComponent(g.grievance_id || "")}`);
+                    }}
+                    disabled={!g.grievance_id}
+                  >
+                    Track Complaint
+                  </button>
+                </div>
+              )}
             </div>
           ))
         )}
@@ -218,6 +237,12 @@ const Grievances = () => {
         {selectedGrievance && (
           <div className="grievance-detail">
             <div className="detail-grid">
+              <div className="detail-item">
+                <span className="detail-label">Grievance ID</span>
+                <span className="detail-value">
+                  {selectedGrievance.grievance_id || "N/A"}
+                </span>
+              </div>
               <div className="detail-item">
                 <span className="detail-label">Category</span>
                 <span className="detail-value">
@@ -331,6 +356,55 @@ const Grievances = () => {
                 </div>
               </div>
             )}
+            {!isAdmin && selectedGrievance?.grievance_id && (
+              <div style={{ marginTop: "1rem", display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => navigate(`/track/${encodeURIComponent(selectedGrievance.grievance_id)}`)}
+                >
+                  Track This Complaint
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        isOpen={!!newSubmission}
+        onClose={() => setNewSubmission(null)}
+        title="Complaint Registered"
+      >
+        {newSubmission && (
+          <div style={{ display: "grid", gap: "0.9rem" }}>
+            <p style={{ margin: 0 }}>Your complaint has been created successfully.</p>
+            <div
+              style={{
+                padding: "0.75rem",
+                borderRadius: "8px",
+                border: "1px solid #d1d5db",
+                background: "#f9fafb",
+              }}
+            >
+              <strong>Grievance ID: {newSubmission.grievance_id || "N/A"}</strong>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+              <button className="btn btn-outline" onClick={() => setNewSubmission(null)}>
+                Close
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  const id = newSubmission.grievance_id;
+                  setNewSubmission(null);
+                  if (id) navigate(`/track/${encodeURIComponent(id)}`);
+                }}
+                disabled={!newSubmission.grievance_id}
+              >
+                Track Now
+              </button>
+            </div>
           </div>
         )}
       </Modal>

@@ -44,6 +44,37 @@ const taskAssignmentSchema = new mongoose.Schema(
 
     rejectionReason: {
       type: String
+    },
+
+    aiVerification: {
+      verified: {
+        type: Boolean,
+        default: null
+      },
+      matchesComplaint: {
+        type: Boolean,
+        default: null
+      },
+      matchesAsset: {
+        type: Boolean,
+        default: null
+      },
+      confidence: {
+        type: Number,
+        default: null
+      },
+      reason: {
+        type: String,
+        default: null
+      },
+      checkedAt: {
+        type: Date,
+        default: null
+      },
+      model: {
+        type: String,
+        default: null
+      }
     }
   },
   { timestamps: true }

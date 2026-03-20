@@ -88,22 +88,6 @@ const MainLayout = () => {
               >
                 My Complaints
               </Link>
-              <Link
-                to="/grievances/new"
-                className={`nav-link ${isActive("/grievances/new") ? "active" : ""}`}
-              >
-                File Complaint
-              </Link>
-            </>
-          )}
-          {user?.role === "FieldWorker" && (
-            <>
-              <Link
-                to="/"
-                className={`nav-link ${isActive("/") ? "active" : ""}`}
-              >
-                My Tasks
-              </Link>
             </>
           )}
         </nav>

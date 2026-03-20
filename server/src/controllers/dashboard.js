@@ -2,6 +2,7 @@ import Cluster from "../models/cluster.js";
 import RiskHistory from "../models/riskHistory.js";
 import Grievance from "../models/grievance.js";
 import { sendClusterAlertToAdmins } from "../services/clusterAlertService.js";
+import { generateWardScorecard, getAllWardScorecards, getWardComparison } from "../services/wardScorecardService.js";
 
 
 // Top risk clusters
@@ -144,4 +145,57 @@ export const getComplaintStats = async (req, res) => {
   ]);
 
   res.json(stats);
+};
+
+// ── Ward Performance Scorecard Endpoints ──
+
+/**
+ * GET /api/dashboard/ward/:ward_id/scorecard
+ * Get performance scorecard for a specific ward
+ */
+export const getWardScorecard = async (req, res) => {
+  try {
+    const { ward_id } = req.params;
+
+    if (!ward_id) {
+      return res.status(400).json({ message: "Ward ID is required" });
+    }
+
+    const scorecard = await generateWardScorecard(ward_id);
+    res.json(scorecard);
+  } catch (error) {
+    console.error("[Dashboard] Error getting ward scorecard:", error.message);
+    res.status(500).json({ message: "Error generating ward scorecard", error: error.message });
+  }
+};
+
+/**
+ * GET /api/dashboard/wards/scorecards
+ * Get performance scorecards for all wards
+ */
+export const getAllWardScorecardList = async (req, res) => {
+  try {
+    const scorecards = await getAllWardScorecards();
+    res.json({
+      total_wards: scorecards.length,
+      scorecards
+    });
+  } catch (error) {
+    console.error("[Dashboard] Error getting all ward scorecards:", error.message);
+    res.status(500).json({ message: "Error generating ward scorecards", error: error.message });
+  }
+};
+
+/**
+ * GET /api/dashboard/wards/comparison
+ * Get comparative analysis across all wards
+ */
+export const getWardComparisonAnalysis = async (req, res) => {
+  try {
+    const comparison = await getWardComparison();
+    res.json(comparison);
+  } catch (error) {
+    console.error("[Dashboard] Error getting ward comparison:", error.message);
+    res.status(500).json({ message: "Error generating ward comparison", error: error.message });
+  }
 };

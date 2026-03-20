@@ -6,6 +6,7 @@ import {
 } from "../services/emailService.js";
 import { analyzeComplaint } from "../services/aiService.js";
 import { verifyComplaintImage } from "../services/aiService.js";
+import { initializeSLAForGrievance } from "../services/slaEngineService.js";
 
 function normalizeImagePath(filePath) {
   if (!filePath) {
@@ -111,6 +112,18 @@ export const createGrievance = async (req, res, next) => {
       createdBy: req.user._id
     });
 
+    // Initialize SLA for the grievance
+    try {
+      await initializeSLAForGrievance(
+        grievance._id,
+        grievance.complaint_date,
+        grievance.severity_level,
+        grievance.category
+      );
+    } catch (slaErr) {
+      console.error("SLA initialization failed:", slaErr.message);
+      // Non-critical, don't fail the request
+    }
 
     console.log("Triggering clustering...");
     await processGrievance(grievance);
