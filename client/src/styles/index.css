@@ -1777,6 +1777,39 @@ img {
   font-size: 1.1rem;
 }
 
+.voice-language-picker {
+  display: inline-flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.voice-language-btn {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.voice-language-btn:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
+.voice-language-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.voice-language-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .voice-input-wrap {
   position: relative;
   display: flex;

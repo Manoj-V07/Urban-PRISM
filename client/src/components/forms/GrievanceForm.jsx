@@ -9,6 +9,12 @@ import {
 } from "../../offline/complaintQueue";
 
 const GrievanceForm = ({ onSuccess, onError }) => {
+  const VOICE_LANGUAGES = [
+    { code: "en-IN", label: "English" },
+    { code: "ta-IN", label: "Tamil" },
+    { code: "hi-IN", label: "Hindi" },
+  ];
+
   const [form, setForm] = useState({
     district_name: "",
     ward_id: "",
@@ -16,6 +22,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
     latitude: "",
     longitude: "",
   });
+  const [voiceLanguage, setVoiceLanguage] = useState("ta-IN");
   const [image, setImage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [gettingLocation, setGettingLocation] = useState(false);
@@ -46,7 +53,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
     start: startVoice,
     stop: stopVoice,
     interim,
-  } = useVoiceInput({ onResult: handleVoiceResult });
+  } = useVoiceInput({ lang: voiceLanguage, onResult: handleVoiceResult });
 
   const toggleVoice = (fieldName) => {
     if (listening && activeVoiceField === fieldName) {
@@ -215,7 +222,23 @@ const GrievanceForm = ({ onSuccess, onError }) => {
       {voiceSupported && (
         <div className="voice-banner">
           <span className="voice-banner-icon">🎙️</span>
-          <span>You can use <strong>voice input</strong> to describe your complaint — tap the mic icon and speak.</span>
+          <span>Use voice input to describe your complaint. Select language mode first, then tap the mic icon.</span>
+        </div>
+      )}
+
+      {voiceSupported && (
+        <div className="voice-language-picker" role="group" aria-label="Voice language mode">
+          {VOICE_LANGUAGES.map((item) => (
+            <button
+              key={item.code}
+              type="button"
+              className={`voice-language-btn ${voiceLanguage === item.code ? "active" : ""}`}
+              onClick={() => setVoiceLanguage(item.code)}
+              disabled={submitting || listening}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
       )}
 
