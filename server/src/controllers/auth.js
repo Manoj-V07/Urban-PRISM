@@ -4,7 +4,17 @@ import { generateToken } from "../utils/token.js";
 // Register
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password, role, workerCategory } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      workerCategory,
+      phone,
+      whatsappNumber,
+      mobile,
+      mobileNumber
+    } = req.body;
 
     const exists = await User.findOne({ email });
 
@@ -12,6 +22,17 @@ export const register = async (req, res, next) => {
       return res.status(400).json({ message: "User already exists" });
 
     const userData = { name, email, password, role };
+
+    const normalizedPhone = phone || mobile || mobileNumber || null;
+    const normalizedWhatsappNumber = whatsappNumber || normalizedPhone;
+
+    if (normalizedPhone) {
+      userData.phone = normalizedPhone;
+    }
+
+    if (normalizedWhatsappNumber) {
+      userData.whatsappNumber = normalizedWhatsappNumber;
+    }
 
     // Field worker specific
     if (role === "FieldWorker") {
@@ -29,6 +50,8 @@ export const register = async (req, res, next) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone || null,
+      whatsappNumber: user.whatsappNumber || user.phone || null,
       role: user.role,
       isVerified: user.isVerified,
       token: generateToken(user._id)
@@ -59,6 +82,8 @@ export const login = async (req, res, next) => {
       id: user._id,
       name: user.name,
       email: user.email,
+      phone: user.phone || null,
+      whatsappNumber: user.whatsappNumber || user.phone || null,
       role: user.role,
       isVerified: user.isVerified,
       token: generateToken(user._id)

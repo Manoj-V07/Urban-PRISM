@@ -4,6 +4,10 @@ import {
   sendGrievanceAcknowledgement,
   sendGrievanceStatusUpdate
 } from "../services/emailService.js";
+import {
+  sendGrievanceWhatsAppAcknowledgement,
+  sendGrievanceWhatsAppStatusUpdate
+} from "../services/whatsappService.js";
 import { analyzeComplaint } from "../services/aiService.js";
 import { verifyComplaintImage } from "../services/aiService.js";
 import { initializeSLAForGrievance } from "../services/slaEngineService.js";
@@ -70,6 +74,14 @@ function normalizeImagePath(filePath) {
   }
 
   return normalized.replace(/^\/+/, "");
+}
+
+function getUserWhatsAppNumber(user) {
+  if (!user) {
+    return null;
+  }
+
+  return user.whatsappNumber || user.phone || null;
 }
 
 // Submit grievance
@@ -175,8 +187,12 @@ export const createGrievance = async (req, res, next) => {
     }
 
     console.log("Triggering clustering...");
-    await processGrievance(grievance);
-    console.log("Clustering done");
+    try {
+      await processGrievance(grievance);
+      console.log("Clustering done");
+    } catch (clusterErr) {
+      console.error("Clustering failed (non-blocking):", clusterErr.message);
+    }
 
     try {
       await sendGrievanceAcknowledgement({
@@ -192,6 +208,32 @@ export const createGrievance = async (req, res, next) => {
       });
     } catch (mailErr) {
       console.error("Acknowledgement email failed:", mailErr.message);
+    }
+
+    try {
+      const recipientNumber = getUserWhatsAppNumber(req.user);
+
+      if (!recipientNumber) {
+        console.warn(`Skipping grievance acknowledgement WhatsApp: missing number for user ${req.user._id}`);
+      }
+
+      const waResult = await sendGrievanceWhatsAppAcknowledgement({
+        to: recipientNumber,
+        name: req.user.name || "Citizen",
+        grievanceId: grievance.grievance_id,
+        category: grievance.category,
+        severity: grievance.severity_level,
+        status: grievance.status,
+        districtName: grievance.district_name,
+        wardId: grievance.ward_id,
+        complaintDate: grievance.complaint_date
+      });
+
+      if (waResult?.sid) {
+        console.log("Acknowledgement WhatsApp queued:", waResult.sid);
+      }
+    } catch (waErr) {
+      console.error("Acknowledgement WhatsApp notification failed:", waErr.message);
     }
 
     res.status(201).json(grievance);
@@ -291,6 +333,27 @@ export const updateStatus = async (req, res, next) => {
       console.error("Email failed:", mailErr.message);
       console.error("Email error details:", mailErr);
       // Optional: log to DB later
+    }
+
+    try {
+      const recipientNumber = getUserWhatsAppNumber(grievance.createdBy);
+
+      if (!recipientNumber) {
+        console.warn(`Skipping status update WhatsApp: missing number for grievance ${grievance.grievance_id}`);
+      }
+
+      await sendGrievanceWhatsAppStatusUpdate({
+        to: recipientNumber,
+        name: grievance.createdBy.name || "Citizen",
+        grievanceId: grievance.grievance_id,
+        status: grievance.status
+      });
+
+      if (recipientNumber) {
+        console.log("Status update WhatsApp sent to:", recipientNumber);
+      }
+    } catch (waErr) {
+      console.error("WhatsApp status notification failed:", waErr.message);
     }
 
     // Always respond success

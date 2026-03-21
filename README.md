@@ -109,6 +109,7 @@ Coordinates are generated district-wise with controlled GPS variations to suppor
 - Track complaint status
 - Receive grievance acknowledgement email on submission
 - Receive email notification on status updates
+- Receive WhatsApp notification on complaint submission and every status update
 
 ### Admin Module
 
@@ -178,6 +179,14 @@ When a grievance status is updated:
 - SMTP configuration is managed through environment variables
 - Email failures are logged for retry
 
+## WhatsApp Notification System
+
+When a grievance is submitted or its status changes:
+
+- The citizen also receives a WhatsApp notification
+- Twilio WhatsApp API is used for message delivery
+- If WhatsApp config or user number is missing, the API request still succeeds and logs the skip/failure
+
 ## Security Features
 
 - JWT-based authentication
@@ -223,6 +232,10 @@ SMTP_HOST=your_smtp_host
 SMTP_PORT=your_port
 SMTP_USER=your_email
 SMTP_PASS=your_password
+TWILIO_ACCOUNT_SID=your_twilio_account_sid
+TWILIO_AUTH_TOKEN=your_twilio_auth_token
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+WHATSAPP_DEFAULT_COUNTRY_CODE=+91
 ```
 
 Run backend:

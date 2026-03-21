@@ -6,6 +6,22 @@ export const registerValidator = [
   body("password")
     .isLength({ min: 6 })
     .withMessage("Password must be at least 6 characters"),
+  body("phone")
+    .optional({ values: "falsy" })
+    .matches(/^[+]?\d{8,15}$/)
+    .withMessage("Phone must be 8-15 digits and may start with +"),
+  body("whatsappNumber")
+    .optional({ values: "falsy" })
+    .matches(/^[+]?\d{8,15}$/)
+    .withMessage("WhatsApp number must be 8-15 digits and may start with +"),
+  body("mobile")
+    .optional({ values: "falsy" })
+    .matches(/^[+]?\d{8,15}$/)
+    .withMessage("Mobile number must be 8-15 digits and may start with +"),
+  body("mobileNumber")
+    .optional({ values: "falsy" })
+    .matches(/^[+]?\d{8,15}$/)
+    .withMessage("Mobile number must be 8-15 digits and may start with +"),
   body("role")
     .optional()
     .isIn(["Citizen", "Admin", "FieldWorker"])

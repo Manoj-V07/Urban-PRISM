@@ -7,6 +7,7 @@ const Register = () => {
   const [form, setForm] = useState({
     name: "",
     email: "",
+    whatsappNumber: "",
     password: "",
     role: "Citizen",
     workerCategory: "",
@@ -25,6 +26,7 @@ const Register = () => {
       const data = await register(
         form.name,
         form.email,
+        form.whatsappNumber,
         form.password,
         form.role,
         form.role === "FieldWorker" ? form.workerCategory : null
@@ -97,6 +99,17 @@ const Register = () => {
               onChange={handleChange}
               placeholder="your@email.com"
               required
+            />
+          </div>
+          <div className="form-group">
+            <label>WhatsApp Number</label>
+            <input
+              type="tel"
+              name="whatsappNumber"
+              value={form.whatsappNumber}
+              onChange={handleChange}
+              placeholder="+919876543210"
+              required={form.role === "Citizen"}
             />
           </div>
           <div className="form-group">

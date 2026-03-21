@@ -40,11 +40,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (name, email, password, role = "Citizen", workerCategory = null) => {
+  const register = async (name, email, whatsappNumber, password, role = "Citizen", workerCategory = null) => {
     setLoading(true);
     setError(null);
     try {
       const payload = { name, email, password, role };
+      if (whatsappNumber) {
+        payload.whatsappNumber = whatsappNumber;
+      }
       if (role === "FieldWorker" && workerCategory) {
         payload.workerCategory = workerCategory;
       }
