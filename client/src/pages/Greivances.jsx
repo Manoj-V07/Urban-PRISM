@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
@@ -65,10 +65,38 @@ const Grievances = () => {
 
   const handleFormSuccess = (createdGrievance) => {
     setShowForm(false);
+    if (createdGrievance?.queuedOffline) {
+      setToast({
+        message: `No network. Complaint queued offline (${createdGrievance.queueCount} pending).`,
+        type: "success",
+      });
+      setNewSubmission(null);
+      return;
+    }
+
     setToast({ message: "Complaint submitted successfully!", type: "success" });
     setNewSubmission(createdGrievance || null);
     refetch();
   };
+
+  useEffect(() => {
+    const onQueueEvent = (event) => {
+      const detail = event.detail || {};
+
+      if (detail.type === "sync-finished" && detail.synced > 0) {
+        setToast({
+          message: `${detail.synced} offline complaint(s) synced successfully.`,
+          type: "success",
+        });
+        refetch();
+      }
+    };
+
+    window.addEventListener("offline-complaint-queue", onQueueEvent);
+    return () => {
+      window.removeEventListener("offline-complaint-queue", onQueueEvent);
+    };
+  }, [refetch]);
 
   const handleStatusUpdate = async (id) => {
     try {

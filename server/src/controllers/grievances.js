@@ -8,6 +8,55 @@ import { analyzeComplaint } from "../services/aiService.js";
 import { verifyComplaintImage } from "../services/aiService.js";
 import { initializeSLAForGrievance } from "../services/slaEngineService.js";
 
+const DUPLICATE_SEARCH_DISTANCE_METERS = 600;
+const DUPLICATE_LOOKBACK_DAYS = 45;
+
+const STOP_WORDS = new Set([
+  "a", "an", "the", "and", "or", "but", "if", "then", "is", "are", "was", "were", "to", "of", "in", "on", "at", "for", "with", "this", "that", "it", "be", "by", "from", "as", "my", "our", "your"
+]);
+
+function normalizeText(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function tokenize(value) {
+  const words = normalizeText(value).split(" ").filter(Boolean);
+  return words.filter((word) => word.length > 2 && !STOP_WORDS.has(word));
+}
+
+function jaccardSimilarity(textA, textB) {
+  const setA = new Set(tokenize(textA));
+  const setB = new Set(tokenize(textB));
+
+  if (!setA.size || !setB.size) {
+    return 0;
+  }
+
+  let intersection = 0;
+  for (const token of setA) {
+    if (setB.has(token)) {
+      intersection += 1;
+    }
+  }
+
+  const union = new Set([...setA, ...setB]).size;
+  return union ? intersection / union : 0;
+}
+
+function getDistanceMeters(lat1, lon1, lat2, lon2) {
+  const toRadians = (deg) => (deg * Math.PI) / 180;
+  const R = 6371000;
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
+
 function normalizeImagePath(filePath) {
   if (!filePath) {
     return null;
@@ -247,6 +296,99 @@ export const updateStatus = async (req, res, next) => {
     // Always respond success
     res.json(grievance);
 
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Citizen duplicate pre-check before final create
+export const checkPossibleDuplicates = async (req, res, next) => {
+  try {
+    const payload = req.body && typeof req.body === "object" ? req.body : {};
+    const {
+      complaint_text,
+      latitude,
+      longitude,
+      ward_id,
+      district_name,
+    } = payload;
+
+    const lat = parseFloat(latitude);
+    const lon = parseFloat(longitude);
+
+    if (!complaint_text || Number.isNaN(lat) || Number.isNaN(lon) || !ward_id || !district_name) {
+      return res.status(400).json({
+        message: "complaint_text, latitude, longitude, ward_id and district_name are required",
+      });
+    }
+
+    const districtRegex = new RegExp(`^${String(district_name).trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+    const since = new Date(Date.now() - DUPLICATE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
+
+    const nearby = await Grievance.find({
+      ward_id,
+      district_name: districtRegex,
+      status: { $ne: "Resolved" },
+      complaint_date: { $gte: since },
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lon, lat],
+          },
+          $maxDistance: DUPLICATE_SEARCH_DISTANCE_METERS,
+        },
+      },
+    })
+      .sort({ complaint_date: -1 })
+      .limit(5)
+      .lean();
+
+    const possibleDuplicates = nearby
+      .map((item) => {
+        const otherLat = item?.location?.coordinates?.[1];
+        const otherLon = item?.location?.coordinates?.[0];
+        const distanceMeters =
+          typeof otherLat === "number" && typeof otherLon === "number"
+            ? getDistanceMeters(lat, lon, otherLat, otherLon)
+            : null;
+
+        const similarity = jaccardSimilarity(complaint_text, item.complaint_text);
+
+        return {
+          _id: item._id,
+          grievance_id: item.grievance_id,
+          status: item.status,
+          category: item.category,
+          district_name: item.district_name,
+          ward_id: item.ward_id,
+          complaint_text: item.complaint_text,
+          complaint_date: item.complaint_date,
+          similarity: Number(similarity.toFixed(2)),
+          distanceMeters,
+        };
+      })
+      .filter((item) => {
+        const nearEnough = item.distanceMeters === null || item.distanceMeters <= 450;
+        const textSimilar = item.similarity >= 0.18;
+        return nearEnough && textSimilar;
+      })
+      .sort((a, b) => {
+        if (b.similarity !== a.similarity) {
+          return b.similarity - a.similarity;
+        }
+        return (a.distanceMeters || Number.MAX_SAFE_INTEGER) - (b.distanceMeters || Number.MAX_SAFE_INTEGER);
+      });
+
+    res.json({
+      warning: possibleDuplicates.length > 0,
+      possibleDuplicates,
+      threshold: {
+        similarity: 0.18,
+        maxDistanceMeters: 450,
+        lookbackDays: DUPLICATE_LOOKBACK_DAYS,
+      },
+    });
   } catch (err) {
     next(err);
   }

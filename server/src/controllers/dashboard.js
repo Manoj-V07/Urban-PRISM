@@ -3,6 +3,7 @@ import RiskHistory from "../models/riskHistory.js";
 import Grievance from "../models/grievance.js";
 import { sendClusterAlertToAdmins } from "../services/clusterAlertService.js";
 import { generateWardScorecard, getAllWardScorecards, getWardComparison } from "../services/wardScorecardService.js";
+import { getPredictiveMaintenanceInsights } from "../services/predictiveMaintenanceService.js";
 
 
 // Top risk clusters
@@ -197,5 +198,22 @@ export const getWardComparisonAnalysis = async (req, res) => {
   } catch (error) {
     console.error("[Dashboard] Error getting ward comparison:", error.message);
     res.status(500).json({ message: "Error generating ward comparison", error: error.message });
+  }
+};
+
+/**
+ * GET /api/dashboard/predictive-maintenance
+ * Predictive maintenance likelihood for next 30 days.
+ */
+export const getPredictiveMaintenance = async (req, res) => {
+  try {
+    const insights = await getPredictiveMaintenanceInsights();
+    res.json(insights);
+  } catch (error) {
+    console.error("[Dashboard] Error getting predictive maintenance:", error.message);
+    res.status(500).json({
+      message: "Error generating predictive maintenance insights",
+      error: error.message,
+    });
   }
 };

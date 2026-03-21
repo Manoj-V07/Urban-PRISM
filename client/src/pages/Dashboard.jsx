@@ -22,6 +22,9 @@ const Dashboard = () => {
   );
   const { data: trend } = useFetch(ENDPOINTS.DASHBOARD.RISK_TREND);
   const { data: complaints } = useFetch(ENDPOINTS.DASHBOARD.COMPLAINTS);
+  const { data: predictiveMaintenance } = useFetch(
+    ENDPOINTS.DASHBOARD.PREDICTIVE_MAINTENANCE
+  );
   const [running, setRunning] = useState(false);
   const [sendingAlert, setSendingAlert] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
@@ -156,6 +159,51 @@ const Dashboard = () => {
       <div className="section">
         <h3>Top Risk Clusters</h3>
         <RiskTable risks={topRisks} onRowClick={setSelectedRisk} />
+      </div>
+
+      <div className="section">
+        <h3>Predictive Maintenance (Next 30 Days)</h3>
+        <p className="text-muted" style={{ marginTop: "0.25rem" }}>
+          Assets with highest likelihood of failure based on maintenance age, grievance pressure, and task signals.
+        </p>
+        <div style={{ overflowX: "auto" }}>
+          <table className="table" style={{ minWidth: "760px" }}>
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Type</th>
+                <th>Ward</th>
+                <th>Days Since Maintenance</th>
+                <th>Failure Likelihood</th>
+                <th>Risk Band</th>
+                <th>Signals</th>
+              </tr>
+            </thead>
+            <tbody>
+              {predictiveMaintenance?.topRiskAssets?.length ? (
+                predictiveMaintenance.topRiskAssets.slice(0, 8).map((asset) => (
+                  <tr key={asset.assetId}>
+                    <td>{asset.assetId}</td>
+                    <td>{asset.assetType}</td>
+                    <td>{asset.wardId}</td>
+                    <td>{asset.daysSinceMaintenance}</td>
+                    <td>
+                      <strong>{asset.failureLikelihood}%</strong>
+                    </td>
+                    <td>{asset.riskBand}</td>
+                    <td>{(asset.reasonSignals || []).slice(0, 2).join(", ") || "-"}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="text-muted">
+                    No predictive maintenance data available yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Risk Detail Modal */}

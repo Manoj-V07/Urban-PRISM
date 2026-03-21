@@ -10,6 +10,7 @@ const ENDPOINTS = {
   GRIEVANCES: {
     CREATE: "/grievances",
     MY: "/grievances/my",
+    DUPLICATE_CHECK: "/grievances/duplicate-check",
     UPDATE_STATUS: (id) => `/grievances/${id}/status`,
   },
   CLUSTERS: {
@@ -29,6 +30,7 @@ const ENDPOINTS = {
     SUMMARY: "/dashboard/summary",
     RISK_TREND: "/dashboard/risk-trend",
     COMPLAINTS: "/dashboard/complaints",
+    PREDICTIVE_MAINTENANCE: "/dashboard/predictive-maintenance",
     SEND_ALERT: "/dashboard/send-alert",
     WARD_SCORECARDS: "/dashboard/wards/scorecards",
     WARD_COMPARISON: "/dashboard/wards/comparison",

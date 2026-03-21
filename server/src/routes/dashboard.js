@@ -10,7 +10,8 @@ import {
   triggerClusterAlert,
   getWardScorecard,
   getAllWardScorecardList,
-  getWardComparisonAnalysis
+  getWardComparisonAnalysis,
+  getPredictiveMaintenance
 } from "../controllers/dashboard.js";
 
 const router = express.Router();
@@ -22,6 +23,8 @@ router.get("/summary", auth, role("Admin"), getSummary);
 router.get("/risk-trend", auth, role("Admin"), getRiskTrend);
 
 router.get("/complaints", auth, role("Admin"), getComplaintStats);
+
+router.get("/predictive-maintenance", auth, role("Admin"), getPredictiveMaintenance);
 
 router.post("/send-alert", auth, role("Admin"), triggerClusterAlert);
 

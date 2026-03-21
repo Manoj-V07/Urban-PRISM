@@ -2,6 +2,11 @@ import { useState, useCallback, useRef } from "react";
 import api from "../../api/axios";
 import ENDPOINTS from "../../api/endpoints";
 import useVoiceInput from "../../hooks/useVoiceInput";
+import Modal from "../common/Modal";
+import {
+  enqueueComplaint,
+  getOfflineComplaintQueueCount,
+} from "../../offline/complaintQueue";
 
 const GrievanceForm = ({ onSuccess, onError }) => {
   const [form, setForm] = useState({
@@ -16,6 +21,8 @@ const GrievanceForm = ({ onSuccess, onError }) => {
   const [gettingLocation, setGettingLocation] = useState(false);
   const [imageMismatch, setImageMismatch] = useState(null);
   const [activeVoiceField, setActiveVoiceField] = useState(null);
+  const [possibleDuplicates, setPossibleDuplicates] = useState([]);
+  const [showDuplicatePrompt, setShowDuplicatePrompt] = useState(false);
   const activeFieldRef = useRef(null);
 
   const handleChange = (e) => {
@@ -77,29 +84,104 @@ const GrievanceForm = ({ onSuccess, onError }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!image) return onError?.("Please upload an image");
+
+    if (!form.latitude || !form.longitude || !form.ward_id || !form.district_name || !form.complaint_text) {
+      onError?.("Please fill all required fields before submit");
+      return;
+    }
+
     setSubmitting(true);
     setImageMismatch(null);
 
     try {
-      const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) =>
-        formData.append(key, value)
-      );
-      formData.append("image", image);
+      const duplicateCheckPayload = {
+        complaint_text: form.complaint_text,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        ward_id: form.ward_id,
+        district_name: form.district_name,
+      };
 
-      const { data } = await api.post(ENDPOINTS.GRIEVANCES.CREATE, formData, {
+      const { data } = await api.post(
+        ENDPOINTS.GRIEVANCES.DUPLICATE_CHECK,
+        duplicateCheckPayload
+      );
+
+      if (data?.warning && Array.isArray(data.possibleDuplicates) && data.possibleDuplicates.length) {
+        setPossibleDuplicates(data.possibleDuplicates);
+        setShowDuplicatePrompt(true);
+        return;
+      }
+
+      await submitComplaint();
+    } catch (err) {
+      if (!err.response && !navigator.onLine) {
+        await queueComplaintOffline();
+        return;
+      }
+
+      onError?.(err.response?.data?.message || "Failed to validate complaint before submit");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const buildFormData = () => {
+    const formData = new FormData();
+    Object.entries(form).forEach(([key, value]) =>
+      formData.append(key, value)
+    );
+    formData.append("image", image);
+    return formData;
+  };
+
+  const resetForm = () => {
+    setForm({
+      district_name: "",
+      ward_id: "",
+      complaint_text: "",
+      latitude: "",
+      longitude: "",
+    });
+    setImage(null);
+    setPossibleDuplicates([]);
+    setShowDuplicatePrompt(false);
+  };
+
+  const queueComplaintOffline = async () => {
+    const queued = await enqueueComplaint({
+      form,
+      imageFile: image,
+    });
+
+    const queueCount = getOfflineComplaintQueueCount();
+    onSuccess?.({
+      queuedOffline: true,
+      queueId: queued.id,
+      queueCount,
+    });
+    resetForm();
+  };
+
+  const submitComplaint = async () => {
+    if (!navigator.onLine) {
+      await queueComplaintOffline();
+      return;
+    }
+
+    try {
+      const { data } = await api.post(ENDPOINTS.GRIEVANCES.CREATE, buildFormData(), {
         headers: { "Content-Type": "multipart/form-data" },
       });
+
       onSuccess?.(data);
-      setForm({
-        district_name: "",
-        ward_id: "",
-        complaint_text: "",
-        latitude: "",
-        longitude: "",
-      });
-      setImage(null);
+      resetForm();
     } catch (err) {
+      if (!err.response) {
+        await queueComplaintOffline();
+        return;
+      }
+
       const resData = err.response?.data;
 
       if (resData?.message === "Image does not match complaint" && resData?.reason) {
@@ -107,6 +189,17 @@ const GrievanceForm = ({ onSuccess, onError }) => {
       } else {
         onError?.(resData?.message || "Failed to submit grievance");
       }
+    }
+  };
+
+  const handleSubmitAnyway = async () => {
+    setSubmitting(true);
+    setImageMismatch(null);
+
+    try {
+      await submitComplaint();
+    } catch (err) {
+      onError?.(err.response?.data?.message || "Failed to submit grievance");
     } finally {
       setSubmitting(false);
     }
@@ -254,6 +347,47 @@ const GrievanceForm = ({ onSuccess, onError }) => {
       >
         {submitting ? "Submitting..." : "Submit Complaint"}
       </button>
+
+      <Modal
+        isOpen={showDuplicatePrompt}
+        onClose={() => setShowDuplicatePrompt(false)}
+        title="Possible Duplicate Complaint"
+      >
+        <div style={{ display: "grid", gap: "0.75rem" }}>
+          <p style={{ margin: 0 }}>
+            We found similar unresolved complaints nearby. Review these first to avoid duplicate entries.
+          </p>
+          <div style={{ maxHeight: "240px", overflowY: "auto", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "0.5rem" }}>
+            {possibleDuplicates.map((item) => (
+              <div key={item._id} style={{ borderBottom: "1px solid #f1f5f9", padding: "0.5rem 0" }}>
+                <strong>{item.grievance_id}</strong>
+                <div style={{ fontSize: "0.85rem", color: "#475569" }}>
+                  Similarity: {Math.round((item.similarity || 0) * 100)}%{" "}
+                  {typeof item.distanceMeters === "number" ? `- ${item.distanceMeters}m away` : ""}
+                </div>
+                <p style={{ margin: "0.25rem 0 0", fontSize: "0.9rem" }}>{item.complaint_text}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={() => setShowDuplicatePrompt(false)}
+            >
+              Edit Complaint
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleSubmitAnyway}
+              disabled={submitting}
+            >
+              {submitting ? "Submitting..." : "Submit Anyway"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </form>
   );
 };
