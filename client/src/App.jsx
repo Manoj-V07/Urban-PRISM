@@ -13,6 +13,7 @@ import Assets from "./pages/Assets";
 import FieldWorkers from "./pages/FieldWorkers";
 import TaskAssignments from "./pages/TaskAssignments";
 import MyTasks from "./pages/MyTasks";
+import SLAControlCenter from "./pages/SLAControlCenter";
 import NotFound from "./pages/NotFound";
 import PublicTracker from "./pages/PublicTracker";
 import useAuth from "./hooks/useAuth";
@@ -92,6 +93,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute adminOnly>
               <TaskAssignments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="sla"
+          element={
+            <ProtectedRoute adminOnly>
+              <SLAControlCenter />
             </ProtectedRoute>
           }
         />

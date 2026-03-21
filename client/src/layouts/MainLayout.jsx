@@ -68,6 +68,12 @@ const MainLayout = () => {
               >
                 Tasks
               </Link>
+              <Link
+                to="/sla"
+                className={`nav-link ${isActive("/sla") ? "active" : ""}`}
+              >
+                SLA
+              </Link>
             </>
           )}
           {user?.role === "FieldWorker" && (

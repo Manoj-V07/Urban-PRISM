@@ -30,6 +30,18 @@ const ENDPOINTS = {
     RISK_TREND: "/dashboard/risk-trend",
     COMPLAINTS: "/dashboard/complaints",
     SEND_ALERT: "/dashboard/send-alert",
+    WARD_SCORECARDS: "/dashboard/wards/scorecards",
+    WARD_COMPARISON: "/dashboard/wards/comparison",
+    WARD_SCORECARD: (wardId) => `/dashboard/ward/${encodeURIComponent(wardId)}/scorecard`,
+  },
+  SLA: {
+    RULES: "/sla/rules",
+    RULE_BY_ID: (id) => `/sla/rules/${id}`,
+    ESCALATION_RULES: "/sla/escalation-rules",
+    BREACHED_GRIEVANCES: "/sla/breached-grievances",
+    ESCALATION_SUMMARY: "/sla/escalations/summary",
+    GRIEVANCE_ESCALATIONS: (id) => `/sla/grievance/${id}/escalations`,
+    UPDATE_GRIEVANCE_STATUS: (id) => `/sla/grievance/${id}/update-status`,
   },
   AI: {
     ANALYZE: "/ai/analyze",
