@@ -5,7 +5,7 @@ const ProtectedRoute = ({ children, adminOnly = false, workerOnly = false }) => 
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (adminOnly && user.role !== "Admin")
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   // Block unverified field workers
   if (user.role === "FieldWorker" && user.isVerified === false) {
     return (
@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children, adminOnly = false, workerOnly = false }) => 
     );
   }
   if (workerOnly && user.role !== "FieldWorker")
-    return <Navigate to="/" replace />;
+    return <Navigate to="/app" replace />;
   return children;
 };
 

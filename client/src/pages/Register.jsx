@@ -32,7 +32,7 @@ const Register = () => {
       if (data?.role === "FieldWorker" && !data?.isVerified) {
         setPendingVerification(true);
       } else {
-        navigate("/");
+        navigate("/app");
       }
     } catch {
       /* error is set in context */

@@ -5,6 +5,7 @@ import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./app/router";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Grievances from "./pages/Greivances";
 import MapView from "./pages/MapView";
@@ -24,18 +25,28 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      <Route path="/" element={<Home />} />
       <Route
         path="/login"
-        element={user ? <Navigate to="/" /> : <Login />}
+        element={user ? <Navigate to="/app" /> : <Login />}
       />
       <Route
         path="/register"
-        element={user ? <Navigate to="/" /> : <Register />}
+        element={user ? <Navigate to="/app" /> : <Register />}
       />
       <Route path="/track" element={<PublicTracker />} />
       <Route path="/track/:grievanceId" element={<PublicTracker />} />
+      <Route path="/grievances" element={<Navigate to="/app/grievances" replace />} />
+      <Route path="/grievances/new" element={<Navigate to="/app/grievances/new" replace />} />
+      <Route path="/map" element={<Navigate to="/app/map" replace />} />
+      <Route path="/analytics" element={<Navigate to="/app/analytics" replace />} />
+      <Route path="/assets" element={<Navigate to="/app/assets" replace />} />
+      <Route path="/field-workers" element={<Navigate to="/app/field-workers" replace />} />
+      <Route path="/task-assignments" element={<Navigate to="/app/task-assignments" replace />} />
+      <Route path="/sla" element={<Navigate to="/app/sla" replace />} />
+      <Route path="/my-tasks" element={<Navigate to="/app/my-tasks" replace />} />
       <Route
-        path="/"
+        path="/app"
         element={
           <ProtectedRoute>
             <MainLayout />

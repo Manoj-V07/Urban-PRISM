@@ -18,7 +18,7 @@ const MainLayout = () => {
     <div className="app-layout">
       <header className="app-header">
         <div className="header-brand">
-          <Link to="/" className="brand-link">
+          <Link to="/app" className="brand-link">
             <span className="brand-icon">◆</span>
             <span className="brand-text">Urban PRISM</span>
           </Link>
@@ -27,50 +27,50 @@ const MainLayout = () => {
           {user?.role === "Admin" && (
             <>
               <Link
-                to="/"
-                className={`nav-link ${isActive("/") ? "active" : ""}`}
+                to="/app"
+                className={`nav-link ${isActive("/app") ? "active" : ""}`}
               >
                 Dashboard
               </Link>
               <Link
-                to="/grievances"
-                className={`nav-link ${isActive("/grievances") ? "active" : ""}`}
+                to="/app/grievances"
+                className={`nav-link ${isActive("/app/grievances") ? "active" : ""}`}
               >
                 Grievances
               </Link>
               <Link
-                to="/map"
-                className={`nav-link ${isActive("/map") ? "active" : ""}`}
+                to="/app/map"
+                className={`nav-link ${isActive("/app/map") ? "active" : ""}`}
               >
                 Map
               </Link>
               <Link
-                to="/analytics"
-                className={`nav-link ${isActive("/analytics") ? "active" : ""}`}
+                to="/app/analytics"
+                className={`nav-link ${isActive("/app/analytics") ? "active" : ""}`}
               >
                 Analytics
               </Link>
               <Link
-                to="/assets"
-                className={`nav-link ${isActive("/assets") ? "active" : ""}`}
+                to="/app/assets"
+                className={`nav-link ${isActive("/app/assets") ? "active" : ""}`}
               >
                 Assets
               </Link>
               <Link
-                to="/field-workers"
-                className={`nav-link ${isActive("/field-workers") ? "active" : ""}`}
+                to="/app/field-workers"
+                className={`nav-link ${isActive("/app/field-workers") ? "active" : ""}`}
               >
                 Workers
               </Link>
               <Link
-                to="/task-assignments"
-                className={`nav-link ${isActive("/task-assignments") ? "active" : ""}`}
+                to="/app/task-assignments"
+                className={`nav-link ${isActive("/app/task-assignments") ? "active" : ""}`}
               >
                 Tasks
               </Link>
               <Link
-                to="/sla"
-                className={`nav-link ${isActive("/sla") ? "active" : ""}`}
+                to="/app/sla"
+                className={`nav-link ${isActive("/app/sla") ? "active" : ""}`}
               >
                 SLA
               </Link>
@@ -79,8 +79,8 @@ const MainLayout = () => {
           {user?.role === "FieldWorker" && (
             <>
               <Link
-                to="/"
-                className={`nav-link ${isActive("/") ? "active" : ""}`}
+                to="/app"
+                className={`nav-link ${isActive("/app") ? "active" : ""}`}
               >
                 My Tasks
               </Link>
@@ -89,8 +89,8 @@ const MainLayout = () => {
           {user?.role === "Citizen" && (
             <>
               <Link
-                to="/"
-                className={`nav-link ${isActive("/") ? "active" : ""}`}
+                to="/app"
+                className={`nav-link ${isActive("/app") ? "active" : ""}`}
               >
                 My Complaints
               </Link>
