@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import api, { API_ORIGIN } from "../api/axios";
 import ENDPOINTS from "../api/endpoints";
+import useAuth from "../hooks/useAuth";
 
 const buildImageUrl = (imagePath) => {
   if (!imagePath) return "";
@@ -18,6 +19,8 @@ const buildImageUrl = (imagePath) => {
 const PublicTracker = () => {
   const { grievanceId: paramGrievanceId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { user } = useAuth();
 
   const [grievanceId, setGrievanceId] = useState(paramGrievanceId || "");
   const [tracker, setTracker] = useState(null);
@@ -75,6 +78,11 @@ const PublicTracker = () => {
   const submitFeedback = async () => {
     if (!tracker?.grievance?.grievance_id) return;
 
+    if (!user) {
+      setFeedbackMessage("Please login to submit feedback.");
+      return;
+    }
+
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       setFeedbackMessage("Please select a rating from 1 to 5");
       return;
@@ -92,7 +100,12 @@ const PublicTracker = () => {
       setFeedbackMessage(data.message || "Feedback submitted successfully");
       await fetchTracker(tracker.grievance.grievance_id);
     } catch (err) {
-      setFeedbackMessage(err.response?.data?.message || "Failed to submit feedback");
+      const status = err.response?.status;
+      if (status === 401) {
+        setFeedbackMessage("Please login to submit feedback.");
+      } else {
+        setFeedbackMessage(err.response?.data?.message || "Failed to submit feedback");
+      }
     } finally {
       setSubmittingFeedback(false);
     }
@@ -180,38 +193,59 @@ const PublicTracker = () => {
             <div className="public-feedback-box">
               <h4>Post-Resolution Feedback</h4>
               {tracker.feedback?.canSubmit ? (
-                <>
-                  <div className="public-stars">
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <button
-                        key={n}
-                        type="button"
-                        className={`public-star ${rating >= n ? "active" : ""}`}
-                        onClick={() => setRating(n)}
-                        aria-label={`Rate ${n} star`}
-                      >
-                        ★
-                      </button>
-                    ))}
+                user ? (
+                  <>
+                    <div className="public-stars">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          className={`public-star ${rating >= n ? "active" : ""}`}
+                          onClick={() => setRating(n)}
+                          aria-label={`Rate ${n} star`}
+                        >
+                          ★
+                        </button>
+                      ))}
+                    </div>
+
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="Share your experience (optional)"
+                      rows={3}
+                      maxLength={500}
+                    />
+
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={submittingFeedback}
+                      onClick={submitFeedback}
+                    >
+                      {submittingFeedback ? "Submitting..." : "Submit Feedback"}
+                    </button>
+                  </>
+                ) : (
+                  <div className="public-feedback-login-note">
+                    <p className="public-tracker-muted" style={{ margin: 0 }}>
+                      Please login to submit rating and feedback for this resolved complaint.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() =>
+                        navigate(
+                          `/login?redirect=${encodeURIComponent(
+                            `${location.pathname}${location.search}`
+                          )}`
+                        )
+                      }
+                    >
+                      Login to Submit Feedback
+                    </button>
                   </div>
-
-                  <textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="Share your experience (optional)"
-                    rows={3}
-                    maxLength={500}
-                  />
-
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={submittingFeedback}
-                    onClick={submitFeedback}
-                  >
-                    {submittingFeedback ? "Submitting..." : "Submit Feedback"}
-                  </button>
-                </>
+                )
               ) : tracker.feedback?.rating ? (
                 <p className="public-tracker-muted">
                   Feedback received: {tracker.feedback.rating}/5

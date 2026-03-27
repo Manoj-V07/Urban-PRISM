@@ -1,18 +1,26 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
+
+const getSafeRedirectPath = (value) => {
+  if (!value || typeof value !== "string") return "/app";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/app";
+  return value;
+};
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { login, loading, error } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = getSafeRedirectPath(searchParams.get("redirect"));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/app");
+      navigate(redirectTo, { replace: true });
     } catch {
       /* error is set in context */
     }

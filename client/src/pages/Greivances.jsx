@@ -30,6 +30,18 @@ const dedupeGrievances = (items = []) => {
   return output;
 };
 
+const renderStarRating = (rating) => {
+  const safeRating = Number(rating || 0);
+  if (!safeRating) {
+    return "Not rated";
+  }
+
+  return "★★★★★"
+    .split("")
+    .map((_, index) => (index < safeRating ? "★" : "☆"))
+    .join("");
+};
+
 const buildGrievanceImageUrl = (imagePath) => {
   if (!imagePath) return "";
 
@@ -357,6 +369,35 @@ const Grievances = () => {
                     e.target.style.display = 'none';
                   }}
                 />
+              </div>
+            )}
+            {isAdmin && (
+              <div className="detail-item full-width citizen-feedback-box">
+                <span className="detail-label">Citizen Feedback</span>
+                {selectedGrievance.citizen_rating != null || selectedGrievance.citizen_feedback ? (
+                  <>
+                    <div className="citizen-rating-row">
+                      <span className="citizen-rating-stars">
+                        {renderStarRating(selectedGrievance.citizen_rating)}
+                      </span>
+                      {selectedGrievance.citizen_rating != null && (
+                        <span className="citizen-rating-value">
+                          {selectedGrievance.citizen_rating}/5
+                        </span>
+                      )}
+                    </div>
+                    <p className="citizen-feedback-text">
+                      {selectedGrievance.citizen_feedback || "Citizen submitted only a rating."}
+                    </p>
+                    {selectedGrievance.feedback_submitted_at && (
+                      <p className="citizen-feedback-date">
+                        Submitted on {formatDate(selectedGrievance.feedback_submitted_at)}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="citizen-feedback-empty">No feedback submitted yet.</p>
+                )}
               </div>
             )}
             {isAdmin && (

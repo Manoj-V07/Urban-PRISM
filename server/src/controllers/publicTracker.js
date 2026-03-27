@@ -126,6 +126,14 @@ export const submitPublicFeedback = async (req, res, next) => {
       return res.status(404).json({ message: "Grievance not found" });
     }
 
+    const isOwner = String(grievance.createdBy || "") === String(req.user?._id || "");
+
+    if (!isOwner) {
+      return res.status(403).json({
+        message: "Only the user who registered this grievance can submit feedback"
+      });
+    }
+
     if (grievance.status !== "Resolved") {
       return res.status(400).json({ message: "Feedback can only be submitted for resolved grievances" });
     }

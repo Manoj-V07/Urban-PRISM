@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { StoreProvider } from "./app/store.jsx";
 import MainLayout from "./layouts/MainLayout";
@@ -20,15 +20,23 @@ import PublicTracker from "./pages/PublicTracker";
 import useAuth from "./hooks/useAuth";
 import "./styles/index.css";
 
+const getSafeRedirectPath = (value) => {
+  if (!value || typeof value !== "string") return "/app";
+  if (!value.startsWith("/") || value.startsWith("//")) return "/app";
+  return value;
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const redirectTo = getSafeRedirectPath(searchParams.get("redirect"));
 
   return (
     <Routes>
       <Route path="/" element={<Home />} />
       <Route
         path="/login"
-        element={user ? <Navigate to="/app" /> : <Login />}
+        element={user ? <Navigate to={redirectTo} replace /> : <Login />}
       />
       <Route
         path="/register"

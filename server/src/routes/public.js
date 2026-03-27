@@ -1,4 +1,5 @@
 import express from "express";
+import auth from "../middlewares/auth.js";
 import {
   getPublicTracker,
   submitPublicFeedback,
@@ -7,6 +8,6 @@ import {
 const router = express.Router();
 
 router.get("/track/:grievanceId", getPublicTracker);
-router.post("/feedback", submitPublicFeedback);
+router.post("/feedback", auth, submitPublicFeedback);
 
 export default router;

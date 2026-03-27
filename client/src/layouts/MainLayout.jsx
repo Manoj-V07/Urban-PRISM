@@ -9,7 +9,7 @@ const MainLayout = () => {
 
   const handleLogout = () => {
     logout();
-    navigate("/login");
+    window.location.assign("/");
   };
 
   const isActive = (path) => location.pathname === path;
