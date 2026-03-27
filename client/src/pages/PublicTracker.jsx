@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import api, { API_ORIGIN } from "../api/axios";
 import ENDPOINTS from "../api/endpoints";
 import useAuth from "../hooks/useAuth";
+import useLiveTranslator from "../hooks/useLiveTranslator";
 
 const buildImageUrl = (imagePath) => {
   if (!imagePath) return "";
@@ -17,6 +19,8 @@ const buildImageUrl = (imagePath) => {
 };
 
 const PublicTracker = () => {
+  const { t } = useTranslation();
+  const { translateBatch, language } = useLiveTranslator();
   const { grievanceId: paramGrievanceId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -31,6 +35,39 @@ const PublicTracker = () => {
   const [comment, setComment] = useState("");
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [translatedMap, setTranslatedMap] = useState({});
+
+  const translateUiText = (value) => {
+    const text = String(value || "");
+    return translatedMap[text] || text;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (language === "en" || !tracker?.grievance) {
+        setTranslatedMap({});
+        return;
+      }
+      const values = [
+        tracker.grievance.category,
+        tracker.grievance.summary,
+        tracker.grievance.complaint_text,
+        tracker.grievance.severity_level,
+        tracker.grievance.status,
+        tracker.feedback?.comment,
+        ...((tracker.timeline || []).map((item) => item.label)),
+      ].filter(Boolean);
+      const map = await translateBatch(values);
+      if (!cancelled) setTranslatedMap(map);
+    };
+
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [language, tracker, translateBatch]);
 
   const statusTone = useMemo(() => {
     const status = tracker?.grievance?.status;
@@ -46,7 +83,7 @@ const PublicTracker = () => {
   const fetchTracker = async (idFromSubmit) => {
     const id = String(idFromSubmit ?? grievanceId).trim();
     if (!id) {
-      setError("Please enter a grievance ID");
+      setError(t("searchPlaceholder"));
       return;
     }
 
@@ -79,7 +116,7 @@ const PublicTracker = () => {
     if (!tracker?.grievance?.grievance_id) return;
 
     if (!user) {
-      setFeedbackMessage("Please login to submit feedback.");
+      setFeedbackMessage(t("loginToSubmitFeedback"));
       return;
     }
 
@@ -102,7 +139,7 @@ const PublicTracker = () => {
     } catch (err) {
       const status = err.response?.status;
       if (status === 401) {
-        setFeedbackMessage("Please login to submit feedback.");
+        setFeedbackMessage(t("loginToSubmitFeedback"));
       } else {
         setFeedbackMessage(err.response?.data?.message || "Failed to submit feedback");
       }
@@ -121,19 +158,19 @@ const PublicTracker = () => {
   return (
     <div className="public-tracker-page">
       <div className="public-tracker-card">
-        <h2>Public Complaint Tracker</h2>
+        <h2>{t("publicTracker")}</h2>
         <p className="public-tracker-muted">
-          Enter your grievance ID to track status and submit feedback after resolution.
+          {t("publicTrackerHint")}
         </p>
 
         <form onSubmit={handleSubmit} className="public-tracker-search">
           <input
             value={grievanceId}
             onChange={(e) => setGrievanceId(e.target.value)}
-            placeholder="Enter grievance ID (example: 123e4567...)"
+            placeholder={t("searchPlaceholder")}
           />
           <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? "Searching..." : "Track"}
+            {loading ? t("searching") : t("track")}
           </button>
         </form>
 
@@ -145,23 +182,23 @@ const PublicTracker = () => {
               <div>
                 <h3>{tracker.grievance.grievance_id}</h3>
                 <p className="public-tracker-muted">
-                  {tracker.grievance.category} | {tracker.grievance.district_name}, Ward {tracker.grievance.ward_id}
+                  {translateUiText(tracker.grievance.category)} | {translateUiText(tracker.grievance.district_name)}, {t("ward")} {tracker.grievance.ward_id}
                 </p>
               </div>
               <span
                 className="public-status-pill"
                 style={{ background: statusTone.bg, color: statusTone.color }}
               >
-                {tracker.grievance.status}
+                {translateUiText(tracker.grievance.status)}
               </span>
             </div>
 
             <div className="public-tracker-grid">
               <div>
-                <strong>Summary:</strong>
-                <p>{tracker.grievance.summary || tracker.grievance.complaint_text}</p>
-                <strong>Severity:</strong>
-                <p>{tracker.grievance.severity_level}</p>
+                <strong>{t("summary")}</strong>
+                <p>{translateUiText(tracker.grievance.summary || tracker.grievance.complaint_text)}</p>
+                <strong>{t("severity")}:</strong>
+                <p>{translateUiText(tracker.grievance.severity_level)}</p>
               </div>
 
               {tracker.grievance.image_url && (
@@ -181,9 +218,9 @@ const PublicTracker = () => {
                 >
                   <div className="public-step-dot" />
                   <div>
-                    <p className="public-step-label">{step.label}</p>
+                    <p className="public-step-label">{translateUiText(step.label)}</p>
                     <p className="public-step-date">
-                      {step.date ? new Date(step.date).toLocaleString() : "Pending"}
+                      {step.date ? new Date(step.date).toLocaleString() : translateUiText("Pending")}
                     </p>
                   </div>
                 </div>
@@ -191,7 +228,7 @@ const PublicTracker = () => {
             </div>
 
             <div className="public-feedback-box">
-              <h4>Post-Resolution Feedback</h4>
+              <h4>{t("postResolutionFeedback")}</h4>
               {tracker.feedback?.canSubmit ? (
                 user ? (
                   <>
@@ -202,7 +239,7 @@ const PublicTracker = () => {
                           type="button"
                           className={`public-star ${rating >= n ? "active" : ""}`}
                           onClick={() => setRating(n)}
-                          aria-label={`Rate ${n} star`}
+                          aria-label={`${t("rate")} ${n} ${t("star")}`}
                         >
                           ★
                         </button>
@@ -212,7 +249,7 @@ const PublicTracker = () => {
                     <textarea
                       value={comment}
                       onChange={(e) => setComment(e.target.value)}
-                      placeholder="Share your experience (optional)"
+                      placeholder={t("shareExperience")}
                       rows={3}
                       maxLength={500}
                     />
@@ -223,13 +260,13 @@ const PublicTracker = () => {
                       disabled={submittingFeedback}
                       onClick={submitFeedback}
                     >
-                      {submittingFeedback ? "Submitting..." : "Submit Feedback"}
+                      {submittingFeedback ? t("submitting", { defaultValue: "Submitting..." }) : t("submitFeedback")}
                     </button>
                   </>
                 ) : (
                   <div className="public-feedback-login-note">
                     <p className="public-tracker-muted" style={{ margin: 0 }}>
-                      Please login to submit rating and feedback for this resolved complaint.
+                      {t("pleaseLoginFeedback")}
                     </p>
                     <button
                       type="button"
@@ -242,18 +279,18 @@ const PublicTracker = () => {
                         )
                       }
                     >
-                      Login to Submit Feedback
+                      {t("loginToSubmitFeedback")}
                     </button>
                   </div>
                 )
               ) : tracker.feedback?.rating ? (
                 <p className="public-tracker-muted">
-                  Feedback received: {tracker.feedback.rating}/5
-                  {tracker.feedback.comment ? ` - ${tracker.feedback.comment}` : ""}
+                  {t("feedbackReceived")}: {tracker.feedback.rating}/5
+                  {tracker.feedback.comment ? ` - ${translateUiText(tracker.feedback.comment)}` : ""}
                 </p>
               ) : (
                 <p className="public-tracker-muted">
-                  Feedback can be submitted after the grievance is resolved.
+                  {t("feedbackAfterResolved")}
                 </p>
               )}
 

@@ -12,6 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const uploadsRoot = path.resolve(__dirname, "../../uploads");
 const ASSET_MATCH_DISTANCE = 1000;
+const DEFAULT_TASK_COMPLETION_MAX_DISTANCE_METERS = 50;
 
 function normalizeImagePath(filePath) {
   if (!filePath) return null;
@@ -49,6 +50,31 @@ function buildDistrictRegex(districtName) {
   const cleaned = String(districtName).trim();
   if (!cleaned) return null;
   return new RegExp(`^${escapeRegex(cleaned)}$`, "i");
+}
+
+function parseCoordinate(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function toRadians(value) {
+  return (value * Math.PI) / 180;
+}
+
+function calculateDistanceMeters(lat1, lng1, lat2, lng2) {
+  const earthRadiusMeters = 6371000;
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) *
+    Math.cos(toRadians(lat2)) *
+    Math.sin(dLng / 2) *
+    Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusMeters * c;
 }
 
 async function findNearestAssetForGrievance(grievance) {
@@ -221,7 +247,8 @@ export const getMyTasks = async (req, res, next) => {
 // ── Field worker: mark task in progress ──
 export const startTask = async (req, res, next) => {
   try {
-    const assignment = await TaskAssignment.findById(req.params.id);
+    const assignment = await TaskAssignment.findById(req.params.id)
+      .populate("grievance", "_id location");
 
     if (!assignment)
       return res.status(404).json({ message: "Assignment not found" });
@@ -232,7 +259,48 @@ export const startTask = async (req, res, next) => {
     if (assignment.status !== "Assigned")
       return res.status(400).json({ message: "Task cannot be started from current status" });
 
+    const workerLatitude = parseCoordinate(req.body.latitude);
+    const workerLongitude = parseCoordinate(req.body.longitude);
+
+    if (workerLatitude === null || workerLongitude === null) {
+      return res.status(400).json({
+        message: "Worker location (latitude and longitude) is required to start task"
+      });
+    }
+
+    if (workerLatitude < -90 || workerLatitude > 90) {
+      return res.status(400).json({ message: "Invalid worker latitude" });
+    }
+
+    if (workerLongitude < -180 || workerLongitude > 180) {
+      return res.status(400).json({ message: "Invalid worker longitude" });
+    }
+
+    const grievanceCoordinates = assignment.grievance?.location?.coordinates;
+    if (!Array.isArray(grievanceCoordinates) || grievanceCoordinates.length < 2) {
+      return res.status(400).json({ message: "Grievance location data is unavailable" });
+    }
+
+    const grievanceLongitude = Number(grievanceCoordinates[0]);
+    const grievanceLatitude = Number(grievanceCoordinates[1]);
+    const distanceMeters = calculateDistanceMeters(
+      workerLatitude,
+      workerLongitude,
+      grievanceLatitude,
+      grievanceLongitude
+    );
+
+    const maxAllowedDistance = Number(process.env.TASK_COMPLETION_MAX_DISTANCE_METERS) ||
+      DEFAULT_TASK_COMPLETION_MAX_DISTANCE_METERS;
+
     assignment.status = "In Progress";
+    assignment.startedAt = new Date();
+    assignment.startLocation = {
+      type: "Point",
+      coordinates: [workerLongitude, workerLatitude]
+    };
+    assignment.startDistanceMeters = Number(distanceMeters.toFixed(2));
+    assignment.startLocationVerified = distanceMeters <= maxAllowedDistance;
     await assignment.save();
 
     res.json(assignment);
@@ -269,6 +337,63 @@ export const completeTask = async (req, res, next) => {
 
     if (!grievanceDoc) {
       return res.status(400).json({ message: "Linked grievance not found" });
+    }
+
+    const workerLatitude = parseCoordinate(req.body.latitude);
+    const workerLongitude = parseCoordinate(req.body.longitude);
+
+    if (workerLatitude === null || workerLongitude === null) {
+      return res.status(400).json({
+        message: "Worker location (latitude and longitude) is required"
+      });
+    }
+
+    if (workerLatitude < -90 || workerLatitude > 90) {
+      return res.status(400).json({ message: "Invalid worker latitude" });
+    }
+
+    if (workerLongitude < -180 || workerLongitude > 180) {
+      return res.status(400).json({ message: "Invalid worker longitude" });
+    }
+
+    const grievanceCoordinates = grievanceDoc.location?.coordinates;
+    if (!Array.isArray(grievanceCoordinates) || grievanceCoordinates.length < 2) {
+      return res.status(400).json({
+        message: "Grievance location data is unavailable"
+      });
+    }
+
+    const grievanceLongitude = Number(grievanceCoordinates[0]);
+    const grievanceLatitude = Number(grievanceCoordinates[1]);
+
+    const distanceMeters = calculateDistanceMeters(
+      workerLatitude,
+      workerLongitude,
+      grievanceLatitude,
+      grievanceLongitude
+    );
+
+    const maxAllowedDistance = Number(process.env.TASK_COMPLETION_MAX_DISTANCE_METERS) ||
+      DEFAULT_TASK_COMPLETION_MAX_DISTANCE_METERS;
+
+    assignment.completionLocation = {
+      type: "Point",
+      coordinates: [workerLongitude, workerLatitude]
+    };
+    assignment.completionDistanceMeters = Number(distanceMeters.toFixed(2));
+    assignment.completionLocationVerified = distanceMeters <= maxAllowedDistance;
+
+    if (!assignment.completionLocationVerified) {
+      await assignment.save();
+
+      return res.status(400).json({
+        message: `Task completion location is too far from complaint location (max ${maxAllowedDistance}m)`,
+        geoVerification: {
+          verified: false,
+          distanceMeters: assignment.completionDistanceMeters,
+          maxAllowedDistance
+        }
+      });
     }
 
     // Backward compatibility for legacy grievances: auto-map a nearest asset when missing.
@@ -445,6 +570,9 @@ export const rejectTask = async (req, res, next) => {
     assignment.rejectionReason = req.body.reason || "Proof not satisfactory";
     assignment.proofImageUrl = null;
     assignment.completedAt = null;
+    assignment.completionLocation = null;
+    assignment.completionDistanceMeters = null;
+    assignment.completionLocationVerified = null;
     await assignment.save();
 
     res.json(assignment);

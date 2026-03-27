@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import api from "../../api/axios";
 import ENDPOINTS from "../../api/endpoints";
 import useVoiceInput from "../../hooks/useVoiceInput";
@@ -9,6 +10,7 @@ import {
 } from "../../offline/complaintQueue";
 
 const GrievanceForm = ({ onSuccess, onError }) => {
+  const { t } = useTranslation();
   const VOICE_LANGUAGES = [
     { code: "en-IN", label: "English" },
     { code: "ta-IN", label: "Tamil" },
@@ -216,13 +218,13 @@ const GrievanceForm = ({ onSuccess, onError }) => {
     <form className="grievance-form" onSubmit={handleSubmit}>
       <div className="ai-notice">
         <span className="ai-notice-icon">🤖</span>
-        <span>Category, severity, and summary will be auto-detected by AI from your complaint text.</span>
+        <span>{t("aiAutoDetect", { defaultValue: "Category, severity, and summary will be auto-detected by AI from your complaint text." })}</span>
       </div>
 
       {voiceSupported && (
         <div className="voice-banner">
           <span className="voice-banner-icon">🎙️</span>
-          <span>Use voice input to describe your complaint. Select language mode first, then tap the mic icon.</span>
+          <span>{t("voiceHelp")}</span>
         </div>
       )}
 
@@ -263,34 +265,34 @@ const GrievanceForm = ({ onSuccess, onError }) => {
       )}
       <div className="form-grid">
         <div className="form-group">
-          <label>District *</label>
+          <label>{t("districtLabel")}</label>
           <input
             name="district_name"
             value={form.district_name}
             onChange={handleChange}
-            placeholder="District name"
+            placeholder={t("district", { defaultValue: "District" })}
             required
           />
         </div>
 
         <div className="form-group">
-          <label>Ward ID *</label>
+          <label>{t("wardIdLabel")}</label>
           <input
             name="ward_id"
             value={form.ward_id}
             onChange={handleChange}
-            placeholder="Ward ID"
+            placeholder={t("wardIdLabel")}
             required
           />
         </div>
 
         <div className="form-group">
-          <label>Latitude *</label>
+          <label>{t("latitudeLabel")}</label>
           <input
             name="latitude"
             value={form.latitude}
             onChange={handleChange}
-            placeholder="Latitude"
+            placeholder={t("latitudeLabel")}
             required
             type="number"
             step="any"
@@ -298,12 +300,12 @@ const GrievanceForm = ({ onSuccess, onError }) => {
         </div>
 
         <div className="form-group">
-          <label>Longitude *</label>
+          <label>{t("longitudeLabel")}</label>
           <input
             name="longitude"
             value={form.longitude}
             onChange={handleChange}
-            placeholder="Longitude"
+            placeholder={t("longitudeLabel")}
             required
             type="number"
             step="any"
@@ -317,17 +319,17 @@ const GrievanceForm = ({ onSuccess, onError }) => {
         onClick={handleGetLocation}
         disabled={gettingLocation}
       >
-        {gettingLocation ? "Getting location..." : "📍 Use My Location"}
+        {gettingLocation ? t("gettingLocation") : `📍 ${t("useMyLocation")}`}
       </button>
 
       <div className="form-group">
-        <label>Complaint Details *</label>
+        <label>{t("complaintDetailsLabel")}</label>
         <div className="voice-input-wrap voice-textarea-wrap">
           <textarea
             name="complaint_text"
             value={form.complaint_text}
             onChange={handleChange}
-            placeholder="Describe your complaint in detail... or tap the mic to speak"
+            placeholder={t("describeComplaint")}
             required
             rows={4}
           />
@@ -336,7 +338,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
               type="button"
               className={`voice-mic-btn voice-mic-textarea ${listening && activeVoiceField === "complaint_text" ? "voice-active" : ""}`}
               onClick={() => toggleVoice("complaint_text")}
-              title="Speak your complaint"
+              title={t("speakComplaint", { defaultValue: "Speak your complaint" })}
             >
               {listening && activeVoiceField === "complaint_text" ? "⏹" : "🎤"}
             </button>
@@ -345,7 +347,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
         {listening && activeVoiceField === "complaint_text" && (
           <div className="voice-listening-bar">
             <span className="voice-pulse" />
-            <span className="voice-listening-text">Listening... speak now</span>
+            <span className="voice-listening-text">{t("listeningNow", { defaultValue: "Listening... speak now" })}</span>
           </div>
         )}
         {listening && activeVoiceField === "complaint_text" && interim && (
@@ -354,7 +356,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
       </div>
 
       <div className="form-group">
-        <label>Upload Image *</label>
+        <label>{t("uploadImage")}</label>
         <input
           type="file"
           accept="image/*"
@@ -368,24 +370,24 @@ const GrievanceForm = ({ onSuccess, onError }) => {
         className="btn btn-primary btn-block"
         disabled={submitting}
       >
-        {submitting ? "Submitting..." : "Submit Complaint"}
+        {submitting ? t("submitting", { defaultValue: "Submitting..." }) : t("submitComplaint")}
       </button>
 
       <Modal
         isOpen={showDuplicatePrompt}
         onClose={() => setShowDuplicatePrompt(false)}
-        title="Possible Duplicate Complaint"
+        title={t("duplicateTitle")}
       >
         <div style={{ display: "grid", gap: "0.75rem" }}>
           <p style={{ margin: 0 }}>
-            We found similar unresolved complaints nearby. Review these first to avoid duplicate entries.
+            {t("duplicateHint")}
           </p>
           <div style={{ maxHeight: "240px", overflowY: "auto", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "0.5rem" }}>
             {possibleDuplicates.map((item) => (
               <div key={item._id} style={{ borderBottom: "1px solid #f1f5f9", padding: "0.5rem 0" }}>
                 <strong>{item.grievance_id}</strong>
                 <div style={{ fontSize: "0.85rem", color: "#475569" }}>
-                  Similarity: {Math.round((item.similarity || 0) * 100)}%{" "}
+                  {t("similarity", { defaultValue: "Similarity" })}: {Math.round((item.similarity || 0) * 100)}%{" "}
                   {typeof item.distanceMeters === "number" ? `- ${item.distanceMeters}m away` : ""}
                 </div>
                 <p style={{ margin: "0.25rem 0 0", fontSize: "0.9rem" }}>{item.complaint_text}</p>
@@ -398,7 +400,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
               className="btn btn-outline"
               onClick={() => setShowDuplicatePrompt(false)}
             >
-              Edit Complaint
+              {t("editComplaint")}
             </button>
             <button
               type="button"
@@ -406,7 +408,7 @@ const GrievanceForm = ({ onSuccess, onError }) => {
               onClick={handleSubmitAnyway}
               disabled={submitting}
             >
-              {submitting ? "Submitting..." : "Submit Anyway"}
+              {submitting ? t("submitting", { defaultValue: "Submitting..." }) : t("submitAnyway")}
             </button>
           </div>
         </div>

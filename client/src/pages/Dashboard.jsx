@@ -203,7 +203,7 @@ const Dashboard = () => {
           </div>
 
           <div className="table-container predictive-table-wrap" style={{ overflowX: "auto" }}>
-            <table className="data-table" style={{ minWidth: "940px" }}>
+            <table className="data-table">
             <thead>
               <tr>
                 <th>Asset</th>

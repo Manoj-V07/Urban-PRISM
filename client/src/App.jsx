@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useSearchParams } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import { StoreProvider } from "./app/store.jsx";
 import MainLayout from "./layouts/MainLayout";
 import ProtectedRoute from "./app/router";
@@ -139,13 +140,15 @@ const AppRoutes = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <StoreProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
-      </StoreProvider>
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <StoreProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </StoreProvider>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

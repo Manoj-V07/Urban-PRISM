@@ -69,6 +69,7 @@ const ENDPOINTS = {
   PUBLIC: {
     TRACK: (grievanceId) => `/public/track/${encodeURIComponent(grievanceId)}`,
     FEEDBACK: "/public/feedback",
+    TRANSLATE: "/public/translate",
   },
 };
 

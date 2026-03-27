@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 import api, { API_ORIGIN } from "../api/axios";
@@ -59,8 +60,28 @@ const buildGrievanceImageUrl = (imagePath) => {
   return `${API_ORIGIN}/${relative}`;
 };
 
+const TOKEN_MAP = {
+  "Road Damage": "tokenRoadDamage",
+  "Water Leakage": "tokenWaterLeakage",
+  "Drain Blockage": "tokenDrainBlockage",
+  "Streetlight Failure": "tokenStreetlightFailure",
+  "Footpath Damage": "tokenFootpathDamage",
+  "Other": "tokenOther",
+  "Pending": "tokenPending",
+  "In Progress": "tokenInProgress",
+  "Resolved": "tokenResolved",
+  "Assigned": "tokenAssigned",
+  "Completed": "tokenCompleted",
+  "Verified": "tokenVerified",
+  "Rejected": "tokenRejected",
+  "High": "tokenHigh",
+  "Medium": "tokenMedium",
+  "Low": "tokenLow",
+};
+
 const Grievances = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const isAdmin = user?.role === "Admin";
   const { data: grievances, loading, refetch } = useFetch(
@@ -74,6 +95,12 @@ const Grievances = () => {
   const [translatedText, setTranslatedText] = useState(null);
   const [newSubmission, setNewSubmission] = useState(null);
   const grievanceList = dedupeGrievances(grievances || []);
+
+  const translateUiText = (value) => {
+    const text = String(value || "").trim();
+    const key = TOKEN_MAP[text];
+    return key ? t(key) : text;
+  };
 
   const handleFormSuccess = (createdGrievance) => {
     setShowForm(false);
@@ -144,9 +171,9 @@ const Grievances = () => {
     <div className="grievances-page">
       <div className="page-header">
         <div>
-          <h2>{isAdmin ? "All Grievances" : "My Complaints"}</h2>
+          <h2>{isAdmin ? t("allGrievances") : t("myComplaints")}</h2>
           <p className="text-muted">
-            {grievanceList.length || 0} total complaints
+            {t("totalComplaints", { count: grievanceList.length || 0 })}
           </p>
         </div>
         {!isAdmin && (
@@ -154,7 +181,7 @@ const Grievances = () => {
             className="btn btn-primary"
             onClick={() => setShowForm(true)}
           >
-            + File Complaint
+            {t("fileComplaint")}
           </button>
         )}
       </div>
@@ -171,13 +198,13 @@ const Grievances = () => {
       <div className="grievance-list">
         {!grievanceList || grievanceList.length === 0 ? (
           <div className="empty-state">
-            <p>No complaints found.</p>
+            <p>{t("noComplaintsFound")}</p>
             {!isAdmin && (
               <button
                 className="btn btn-primary"
                 onClick={() => setShowForm(true)}
               >
-                File your first complaint
+                {t("fileFirstComplaint")}
               </button>
             )}
           </div>
@@ -192,14 +219,14 @@ const Grievances = () => {
               }}
             >
               <div className="grievance-card-header">
-                <span className="grievance-category">{g.category}</span>
+                <span className="grievance-category">{translateUiText(g.category)}</span>
                 <span
                   className="severity-badge"
                   style={{
                     backgroundColor: SEVERITY_COLORS[g.severity_level],
                   }}
                 >
-                  {g.severity_level}
+                  {translateUiText(g.severity_level)}
                 </span>
               </div>
               <p style={{ margin: "0.25rem 0", fontSize: "0.85rem", color: "#6b7280" }}>
@@ -220,13 +247,13 @@ const Grievances = () => {
                     backgroundColor: STATUS_COLORS[g.status],
                   }}
                 >
-                  {g.status}
+                  {translateUiText(g.status)}
                 </span>
                 <span className="grievance-date">
                   {formatDate(g.complaint_date)}
                 </span>
                 <span className="grievance-ward">
-                  Ward: {g.ward_id}
+                  {t("ward")}: {g.ward_id}
                 </span>
               </div>
               {!isAdmin && (
@@ -240,7 +267,7 @@ const Grievances = () => {
                     }}
                     disabled={!g.grievance_id}
                   >
-                    Track Complaint
+                    {t("trackComplaint")}
                   </button>
                 </div>
               )}
@@ -253,7 +280,7 @@ const Grievances = () => {
       <Modal
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        title="File a Complaint"
+        title={t("fileAComplaint")}
         size="lg"
       >
         <GrievanceForm
@@ -271,26 +298,26 @@ const Grievances = () => {
           setSelectedGrievance(null);
           setTranslatedText(null);
         }}
-        title="Complaint Details"
+        title={t("complaintDetails")}
         size="lg"
       >
         {selectedGrievance && (
           <div className="grievance-detail">
             <div className="detail-grid">
               <div className="detail-item">
-                <span className="detail-label">Grievance ID</span>
+                <span className="detail-label">{t("grievanceId")}</span>
                 <span className="detail-value">
                   {selectedGrievance.grievance_id || "N/A"}
                 </span>
               </div>
               <div className="detail-item">
-                <span className="detail-label">Category</span>
+                <span className="detail-label">{t("category")}</span>
                 <span className="detail-value">
-                  {selectedGrievance.category}
+                  {translateUiText(selectedGrievance.category)}
                 </span>
               </div>
               <div className="detail-item">
-                <span className="detail-label">Severity</span>
+                <span className="detail-label">{t("severity")}</span>
                 <span
                   className="detail-value"
                   style={{
@@ -298,11 +325,11 @@ const Grievances = () => {
                       SEVERITY_COLORS[selectedGrievance.severity_level],
                   }}
                 >
-                  {selectedGrievance.severity_level}
+                  {translateUiText(selectedGrievance.severity_level)}
                 </span>
               </div>
               <div className="detail-item">
-                <span className="detail-label">Status</span>
+                <span className="detail-label">{t("status")}</span>
                 <span
                   className="status-badge"
                   style={{
@@ -310,30 +337,30 @@ const Grievances = () => {
                       STATUS_COLORS[selectedGrievance.status],
                   }}
                 >
-                  {selectedGrievance.status}
+                  {translateUiText(selectedGrievance.status)}
                 </span>
               </div>
               <div className="detail-item">
-                <span className="detail-label">Date</span>
+                <span className="detail-label">{t("date")}</span>
                 <span className="detail-value">
                   {formatDate(selectedGrievance.complaint_date)}
                 </span>
               </div>
               <div className="detail-item">
-                <span className="detail-label">District</span>
+                <span className="detail-label">{t("district")}</span>
                 <span className="detail-value">
-                  {selectedGrievance.district_name}
+                  {translateUiText(selectedGrievance.district_name)}
                 </span>
               </div>
               <div className="detail-item">
-                <span className="detail-label">Ward</span>
+                <span className="detail-label">{t("ward")}</span>
                 <span className="detail-value">
                   {selectedGrievance.ward_id}
                 </span>
               </div>
             </div>
             <div className="detail-item full-width">
-              <span className="detail-label">Complaint</span>
+              <span className="detail-label">{t("complaint")}</span>
               <p className="detail-value">
                 {selectedGrievance.complaint_text}
               </p>
@@ -342,11 +369,11 @@ const Grievances = () => {
                 onClick={() => handleTranslate(selectedGrievance.complaint_text)}
                 disabled={translating}
               >
-                {translating ? "Translating..." : "🌐 Translate to English"}
+                {translating ? t("translating") : `🌐 ${t("translateToEnglish")}`}
               </button>
               {translatedText && (
                 <div className="translated-box">
-                  <span className="detail-label">Translation</span>
+                  <span className="detail-label">{t("translation")}</span>
                   <p className="detail-value">{translatedText}</p>
                 </div>
               )}
@@ -373,7 +400,7 @@ const Grievances = () => {
             )}
             {isAdmin && (
               <div className="detail-item full-width citizen-feedback-box">
-                <span className="detail-label">Citizen Feedback</span>
+                <span className="detail-label">{t("citizenFeedback")}</span>
                 {selectedGrievance.citizen_rating != null || selectedGrievance.citizen_feedback ? (
                   <>
                     <div className="citizen-rating-row">
@@ -387,7 +414,7 @@ const Grievances = () => {
                       )}
                     </div>
                     <p className="citizen-feedback-text">
-                      {selectedGrievance.citizen_feedback || "Citizen submitted only a rating."}
+                      {selectedGrievance.citizen_feedback || t("notRated")}
                     </p>
                     {selectedGrievance.feedback_submitted_at && (
                       <p className="citizen-feedback-date">
@@ -396,13 +423,13 @@ const Grievances = () => {
                     )}
                   </>
                 ) : (
-                  <p className="citizen-feedback-empty">No feedback submitted yet.</p>
+                  <p className="citizen-feedback-empty">{t("noFeedbackYet")}</p>
                 )}
               </div>
             )}
             {isAdmin && (
               <div className="status-update-section">
-                <h4>Update Status</h4>
+                <h4>{t("updateStatus")}</h4>
                 <div className="status-update-row">
                   <select
                     value={statusUpdate}
@@ -420,7 +447,7 @@ const Grievances = () => {
                       handleStatusUpdate(selectedGrievance._id)
                     }
                   >
-                    Update
+                    {t("update")}
                   </button>
                 </div>
               </div>
@@ -432,7 +459,7 @@ const Grievances = () => {
                   className="btn btn-primary"
                   onClick={() => navigate(`/track/${encodeURIComponent(selectedGrievance.grievance_id)}`)}
                 >
-                  Track This Complaint
+                  {t("trackThisComplaint")}
                 </button>
               </div>
             )}
@@ -443,11 +470,11 @@ const Grievances = () => {
       <Modal
         isOpen={!!newSubmission}
         onClose={() => setNewSubmission(null)}
-        title="Complaint Registered"
+        title={t("complaintRegistered")}
       >
         {newSubmission && (
           <div style={{ display: "grid", gap: "0.9rem" }}>
-            <p style={{ margin: 0 }}>Your complaint has been created successfully.</p>
+            <p style={{ margin: 0 }}>{t("complaintCreated")}</p>
             <div
               style={{
                 padding: "0.75rem",
@@ -460,7 +487,7 @@ const Grievances = () => {
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.5rem" }}>
               <button className="btn btn-outline" onClick={() => setNewSubmission(null)}>
-                Close
+                {t("close")}
               </button>
               <button
                 className="btn btn-primary"
@@ -471,7 +498,7 @@ const Grievances = () => {
                 }}
                 disabled={!newSubmission.grievance_id}
               >
-                Track Now
+                {t("trackNow")}
               </button>
             </div>
           </div>

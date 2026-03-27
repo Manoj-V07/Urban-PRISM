@@ -1,5 +1,6 @@
 import Grievance from "../models/grievance.js";
 import TaskAssignment from "../models/taskAssignment.js";
+import { translateBatchToLanguage, translateToLanguage } from "../services/aiService.js";
 
 const buildTimeline = (grievance, assignment) => {
   const timeline = [
@@ -155,6 +156,31 @@ export const submitPublicFeedback = async (req, res, next) => {
         submittedAt: grievance.feedback_submitted_at,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const translatePublicText = async (req, res, next) => {
+  try {
+    const { text, texts, targetLang = "en" } = req.body;
+
+    if (!text && !Array.isArray(texts)) {
+      return res.status(400).json({ message: "text or texts[] is required" });
+    }
+
+    if (Array.isArray(texts)) {
+      const clean = texts
+        .map((item) => String(item || "").trim())
+        .filter(Boolean)
+        .slice(0, 100);
+
+      const translations = await translateBatchToLanguage(clean, targetLang);
+      return res.json({ success: true, targetLang, translations });
+    }
+
+    const translated = await translateToLanguage(String(text || ""), targetLang);
+    return res.json({ success: true, targetLang, translated });
   } catch (err) {
     next(err);
   }

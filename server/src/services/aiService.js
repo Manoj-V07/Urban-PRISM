@@ -44,6 +44,15 @@ const generateWithGemini = async (prompt) => {
   return (response.text || "").trim();
 };
 
+const translationCache = new Map();
+
+const getLanguageLabel = (langCode = "en") => {
+  const normalized = String(langCode || "en").trim().toLowerCase();
+  if (normalized === "ta") return "Tamil";
+  if (normalized === "hi") return "Hindi";
+  return "English";
+};
+
 
 /**
  * Smart Complaint Analyzer
@@ -126,6 +135,58 @@ Text:
   } catch {
     return await generateWithGemini(prompt);
   }
+};
+
+export const translateToLanguage = async (text, targetLang = "en") => {
+  const input = String(text || "").trim();
+  const lang = String(targetLang || "en").trim().toLowerCase();
+
+  if (!input) return "";
+
+  const cacheKey = `${lang}::${input}`;
+  if (translationCache.has(cacheKey)) {
+    return translationCache.get(cacheKey);
+  }
+
+  let translated;
+
+  if (lang === "en") {
+    translated = await translateToEnglish(input);
+  } else {
+    const targetLabel = getLanguageLabel(lang);
+    const prompt = `
+Translate the following text to clear ${targetLabel}.
+Keep meaning and tone intact.
+Return ONLY translated text without quotes.
+
+Text:
+"${input}"
+`;
+
+    try {
+      const completion = await getGroq().chat.completions.create({
+        model: "llama-3.1-8b-instant",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0,
+      });
+      translated = completion.choices[0].message.content.trim();
+    } catch {
+      translated = await generateWithGemini(prompt);
+    }
+  }
+
+  translationCache.set(cacheKey, translated || input);
+  return translated || input;
+};
+
+export const translateBatchToLanguage = async (texts = [], targetLang = "en") => {
+  const output = {};
+  for (const value of texts) {
+    const source = String(value || "");
+    if (!source.trim()) continue;
+    output[source] = await translateToLanguage(source, targetLang);
+  }
+  return output;
 };
 
 

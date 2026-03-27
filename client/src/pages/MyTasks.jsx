@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import useFetch from "../hooks/useFetch";
 import api, { API_ORIGIN } from "../api/axios";
 import ENDPOINTS from "../api/endpoints";
@@ -19,17 +20,58 @@ const buildImageUrl = (imagePath) => {
   return `${API_ORIGIN}/${relative}`;
 };
 
+const TOKEN_MAP = {
+  "Road Damage": "tokenRoadDamage",
+  "Water Leakage": "tokenWaterLeakage",
+  "Drain Blockage": "tokenDrainBlockage",
+  "Streetlight Failure": "tokenStreetlightFailure",
+  "Footpath Damage": "tokenFootpathDamage",
+  "Other": "tokenOther",
+  "Pending": "tokenPending",
+  "In Progress": "tokenInProgress",
+  "Resolved": "tokenResolved",
+  "Assigned": "tokenAssigned",
+  "Completed": "tokenCompleted",
+  "Verified": "tokenVerified",
+  "Rejected": "tokenRejected",
+  "High": "tokenHigh",
+  "Medium": "tokenMedium",
+  "Low": "tokenLow",
+};
+
 const MyTasks = () => {
+  const { t } = useTranslation();
   const { data: tasks, loading, refetch } = useFetch(ENDPOINTS.TASKS.MY);
   const [toast, setToast] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [proofFile, setProofFile] = useState(null);
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [locating, setLocating] = useState(false);
+
+  const activeTasks = (tasks || []).filter((t) =>
+    ["Assigned", "In Progress"].includes(t.status)
+  );
+  const completedTasks = (tasks || []).filter((t) =>
+    ["Completed", "Verified", "Rejected"].includes(t.status)
+  );
+
+  const translateUiText = (value) => {
+    const text = String(value || "").trim();
+    const key = TOKEN_MAP[text];
+    return key ? t(key) : text;
+  };
 
   const handleStart = async (taskId) => {
     try {
-      await api.patch(ENDPOINTS.TASKS.START(taskId));
+      setLocating(true);
+      const location = await getCurrentLocation();
+
+      await api.patch(ENDPOINTS.TASKS.START(taskId), {
+        latitude: String(location.latitude),
+        longitude: String(location.longitude),
+      });
+
       setToast({ message: "Task started", type: "success" });
       refetch();
     } catch (err) {
@@ -37,8 +79,39 @@ const MyTasks = () => {
         message: err.response?.data?.message || "Failed to start task",
         type: "error",
       });
+    } finally {
+      setLocating(false);
     }
   };
+
+  const getCurrentLocation = () =>
+    new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported on this device"));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => {
+          let message = "Unable to fetch your current location";
+          if (error?.code === 1) message = "Location permission denied";
+          if (error?.code === 2) message = "Location unavailable";
+          if (error?.code === 3) message = "Location request timed out";
+          reject(new Error(message));
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        }
+      );
+    });
 
   const handleComplete = async (taskId) => {
     if (!proofFile) {
@@ -47,10 +120,15 @@ const MyTasks = () => {
     }
 
     setSubmitting(true);
+    setLocating(true);
     try {
+      const location = await getCurrentLocation();
+
       const formData = new FormData();
       formData.append("proofImage", proofFile);
       if (notes) formData.append("notes", notes);
+      formData.append("latitude", String(location.latitude));
+      formData.append("longitude", String(location.longitude));
 
       await api.patch(ENDPOINTS.TASKS.COMPLETE(taskId), formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -68,28 +146,22 @@ const MyTasks = () => {
       });
     } finally {
       setSubmitting(false);
+      setLocating(false);
     }
   };
 
   if (loading) return <Loader />;
 
-  const activeTasks = (tasks || []).filter((t) =>
-    ["Assigned", "In Progress"].includes(t.status)
-  );
-  const completedTasks = (tasks || []).filter((t) =>
-    ["Completed", "Verified", "Rejected"].includes(t.status)
-  );
-
   return (
     <div className="page-container">
       <div className="page-header">
-        <h2>My Tasks</h2>
-        <p className="text-muted">View and manage your assigned maintenance tasks</p>
+        <h2>{t("myTasks")}</h2>
+        <p className="text-muted">{t("tasksHint")}</p>
       </div>
 
       {/* Active Tasks */}
       <h3 style={{ marginBottom: "1rem" }}>
-        Active Tasks ({activeTasks.length})
+        {t("activeTasks")} ({activeTasks.length})
       </h3>
       {activeTasks.length === 0 ? (
         <div
@@ -101,13 +173,13 @@ const MyTasks = () => {
             marginBottom: "2rem",
           }}
         >
-          <p style={{ color: "#6b7280" }}>No active tasks assigned</p>
+          <p style={{ color: "#6b7280" }}>{t("noActiveTasks")}</p>
         </div>
       ) : (
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
             gap: "1rem",
             marginBottom: "2rem",
           }}
@@ -132,7 +204,7 @@ const MyTasks = () => {
                 }}
               >
                 <h4 style={{ margin: 0 }}>
-                  {task.grievance?.category || "Task"}
+                  {translateUiText(task.grievance?.category) || t("task")}
                 </h4>
                 <span
                   className="badge"
@@ -141,22 +213,22 @@ const MyTasks = () => {
                     color: TASK_STATUS_COLORS[task.status],
                   }}
                 >
-                  {task.status}
+                  {translateUiText(task.status)}
                 </span>
               </div>
 
               <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
-                <strong>Grievance:</strong>{" "}
+                <strong>{t("grievanceId")}:</strong>{" "}
                 {task.grievance?.grievance_id || "\u2014"}
               </p>
               <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
-                <strong>Location:</strong>{" "}
-                {task.grievance?.district_name}, Ward{" "}
+                <strong>{t("district")}:</strong>{" "}
+                {translateUiText(task.grievance?.district_name)}, {t("ward")}{" "}
                 {task.grievance?.ward_id}
               </p>
               <p style={{ margin: "0.25rem 0", fontSize: "0.9rem" }}>
-                <strong>Severity:</strong>{" "}
-                {task.grievance?.severity_level}
+                <strong>{t("severity")}:</strong>{" "}
+                {translateUiText(task.grievance?.severity_level)}
               </p>
               <p
                 style={{
@@ -194,17 +266,18 @@ const MyTasks = () => {
                     color: "#991b1b",
                   }}
                 >
-                  <strong>Rejected:</strong> {task.rejectionReason}
+                  <strong>{translateUiText("Rejected")}:</strong> {translateUiText(task.rejectionReason)}
                 </div>
               )}
 
-              <div style={{ display: "flex", gap: "0.5rem" }}>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                 {task.status === "Assigned" && (
                   <button
                     className="btn btn-primary btn-sm"
+                    disabled={locating || submitting}
                     onClick={() => handleStart(task._id)}
                   >
-                    Start Task
+                    {locating ? t("gettingLocation") : t("startTask")}
                   </button>
                 )}
                 {["Assigned", "In Progress"].includes(task.status) && (
@@ -213,7 +286,7 @@ const MyTasks = () => {
                     style={{ background: "#8b5cf6", color: "#fff" }}
                     onClick={() => setSelectedTask(task)}
                   >
-                    Upload Proof & Complete
+                    {t("uploadProof")}
                   </button>
                 )}
               </div>
@@ -224,30 +297,30 @@ const MyTasks = () => {
 
       {/* Completed Tasks */}
       <h3 style={{ marginBottom: "1rem" }}>
-        History ({completedTasks.length})
+        {t("history")} ({completedTasks.length})
       </h3>
       <div className="table-container">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Grievance</th>
-              <th>Category</th>
-              <th>Status</th>
-              <th>Completed</th>
+              <th>{t("grievanceId")}</th>
+              <th>{t("category")}</th>
+              <th>{t("status")}</th>
+              <th>{t("completed")}</th>
             </tr>
           </thead>
           <tbody>
             {completedTasks.length === 0 ? (
               <tr>
                 <td colSpan="4" style={{ textAlign: "center", padding: "2rem" }}>
-                  No completed tasks yet
+                  {t("noCompletedTasks")}
                 </td>
               </tr>
             ) : (
               completedTasks.map((task) => (
                 <tr key={task._id}>
                   <td>{task.grievance?.grievance_id || "\u2014"}</td>
-                  <td>{task.grievance?.category || "\u2014"}</td>
+                  <td>{translateUiText(task.grievance?.category) || "\u2014"}</td>
                   <td>
                     <span
                       className="badge"
@@ -256,7 +329,7 @@ const MyTasks = () => {
                         color: TASK_STATUS_COLORS[task.status],
                       }}
                     >
-                      {task.status}
+                      {translateUiText(task.status)}
                     </span>
                   </td>
                   <td>
@@ -279,7 +352,7 @@ const MyTasks = () => {
           setProofFile(null);
           setNotes("");
         }}
-        title="Complete Task"
+        title={t("completeTask")}
       >
         {selectedTask && (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -291,18 +364,18 @@ const MyTasks = () => {
               }}
             >
               <p>
-                <strong>Grievance:</strong>{" "}
+                <strong>{t("grievanceId")}:</strong>{" "}
                 {selectedTask.grievance?.grievance_id}
               </p>
               <p>
-                <strong>Category:</strong>{" "}
-                {selectedTask.grievance?.category}
+                <strong>{t("category")}:</strong>{" "}
+                {translateUiText(selectedTask.grievance?.category)}
               </p>
             </div>
 
             <div className="form-group">
               <label>
-                <strong>Proof Image *</strong>
+                <strong>{t("uploadImage")}</strong>
               </label>
               <input
                 type="file"
@@ -331,12 +404,12 @@ const MyTasks = () => {
 
             <div className="form-group">
               <label>
-                <strong>Completion Notes</strong>
+                <strong>{t("completionNotes")}</strong>
               </label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Describe the work done..."
+                placeholder={t("completionNotes")}
                 rows={3}
                 style={{
                   width: "100%",
@@ -351,9 +424,11 @@ const MyTasks = () => {
             <button
               className="btn btn-primary"
               onClick={() => handleComplete(selectedTask._id)}
-              disabled={submitting}
+              disabled={submitting || locating}
             >
-              {submitting ? "Submitting..." : "Submit Proof & Complete"}
+              {(submitting || locating)
+                ? t("submitting", { defaultValue: "Getting location and submitting..." })
+                : t("submitProofComplete")}
             </button>
           </div>
         )}

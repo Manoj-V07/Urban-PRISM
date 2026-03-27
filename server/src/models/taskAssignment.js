@@ -34,8 +34,52 @@ const taskAssignmentSchema = new mongoose.Schema(
       type: String
     },
 
+    startedAt: {
+      type: Date
+    },
+
+    startLocation: {
+      type: {
+        type: String,
+        enum: ["Point"]
+      },
+      coordinates: {
+        type: [Number]
+      }
+    },
+
+    startDistanceMeters: {
+      type: Number,
+      default: null
+    },
+
+    startLocationVerified: {
+      type: Boolean,
+      default: null
+    },
+
     completedAt: {
       type: Date
+    },
+
+    completionLocation: {
+      type: {
+        type: String,
+        enum: ["Point"]
+      },
+      coordinates: {
+        type: [Number]
+      }
+    },
+
+    completionDistanceMeters: {
+      type: Number,
+      default: null
+    },
+
+    completionLocationVerified: {
+      type: Boolean,
+      default: null
     },
 
     verifiedAt: {
@@ -83,6 +127,8 @@ const taskAssignmentSchema = new mongoose.Schema(
 // One active assignment per grievance
 taskAssignmentSchema.index({ grievance: 1 });
 taskAssignmentSchema.index({ assignedTo: 1, status: 1 });
+taskAssignmentSchema.index({ startLocation: "2dsphere" });
+taskAssignmentSchema.index({ completionLocation: "2dsphere" });
 
 const TaskAssignment = mongoose.model("TaskAssignment", taskAssignmentSchema);
 

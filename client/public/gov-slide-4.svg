@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Citizen grievance portal">
+  <defs>
+    <linearGradient id="g4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#eff6ff"/>
+      <stop offset="100%" stop-color="#fff1f2"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="700" fill="url(#g4)"/>
+  <circle cx="180" cy="120" r="70" fill="#f97316" opacity="0.2"/>
+  <circle cx="1020" cy="150" r="65" fill="#16a34a" opacity="0.22"/>
+  <rect x="150" y="120" width="900" height="470" rx="24" fill="#ffffff"/>
+  <rect x="190" y="170" width="820" height="56" rx="10" fill="#f1f5f9"/>
+  <rect x="190" y="255" width="390" height="300" rx="14" fill="#dbeafe"/>
+  <rect x="610" y="255" width="400" height="138" rx="14" fill="#dcfce7"/>
+  <rect x="610" y="417" width="400" height="138" rx="14" fill="#fee2e2"/>
+  <rect x="225" y="300" width="320" height="18" rx="9" fill="#1d4ed8"/>
+  <rect x="225" y="335" width="240" height="18" rx="9" fill="#0ea5e9"/>
+  <rect x="225" y="370" width="280" height="18" rx="9" fill="#10b981"/>
+  <rect x="225" y="440" width="145" height="40" rx="20" fill="#f59e0b"/>
+  <rect x="635" y="290" width="340" height="18" rx="9" fill="#16a34a"/>
+  <rect x="635" y="324" width="220" height="18" rx="9" fill="#22c55e"/>
+  <rect x="635" y="452" width="340" height="18" rx="9" fill="#dc2626"/>
+  <rect x="635" y="486" width="210" height="18" rx="9" fill="#ef4444"/>
+  <text x="150" y="80" fill="#0f172a" font-family="Segoe UI, Arial, sans-serif" font-size="42" font-weight="700">Citizen Grievance and Resolution Portal</text>
+</svg>
