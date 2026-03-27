@@ -29,6 +29,26 @@ const Dashboard = () => {
   const [sendingAlert, setSendingAlert] = useState(false);
   const [selectedRisk, setSelectedRisk] = useState(null);
 
+  const predictiveAssets = predictiveMaintenance?.topRiskAssets?.slice(0, 8) || [];
+  const predictiveAverageLikelihood = predictiveAssets.length
+    ? Math.round(
+        predictiveAssets.reduce(
+          (sum, asset) => sum + Number(asset.failureLikelihood || 0),
+          0
+        ) / predictiveAssets.length
+      )
+    : 0;
+  const predictiveHighestLikelihood = predictiveAssets.length
+    ? Math.max(...predictiveAssets.map((asset) => Number(asset.failureLikelihood || 0)))
+    : 0;
+
+  const getPredictiveRiskClass = (riskBand) => {
+    const normalized = String(riskBand || "").toLowerCase();
+    if (normalized === "high") return "predictive-risk-high";
+    if (normalized === "medium") return "predictive-risk-medium";
+    return "predictive-risk-low";
+  };
+
   const handleRunRisk = async () => {
     setRunning(true);
     try {
@@ -166,8 +186,24 @@ const Dashboard = () => {
         <p className="text-muted" style={{ marginTop: "0.25rem" }}>
           Assets with highest likelihood of failure based on maintenance age, grievance pressure, and task signals.
         </p>
-        <div style={{ overflowX: "auto" }}>
-          <table className="table" style={{ minWidth: "760px" }}>
+        <div className="predictive-maintenance-card">
+          <div className="predictive-stats-row">
+            <div className="predictive-stat-item">
+              <p className="card-label">Assets Evaluated</p>
+              <h4 className="predictive-stat-value">{predictiveAssets.length}</h4>
+            </div>
+            <div className="predictive-stat-item">
+              <p className="card-label">Average Likelihood</p>
+              <h4 className="predictive-stat-value">{predictiveAverageLikelihood}%</h4>
+            </div>
+            <div className="predictive-stat-item">
+              <p className="card-label">Highest Likelihood</p>
+              <h4 className="predictive-stat-value">{predictiveHighestLikelihood}%</h4>
+            </div>
+          </div>
+
+          <div className="table-container predictive-table-wrap" style={{ overflowX: "auto" }}>
+            <table className="data-table" style={{ minWidth: "940px" }}>
             <thead>
               <tr>
                 <th>Asset</th>
@@ -180,18 +216,50 @@ const Dashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {predictiveMaintenance?.topRiskAssets?.length ? (
-                predictiveMaintenance.topRiskAssets.slice(0, 8).map((asset) => (
+              {predictiveAssets.length ? (
+                predictiveAssets.map((asset) => (
                   <tr key={asset.assetId}>
-                    <td>{asset.assetId}</td>
+                    <td>
+                      <span className="predictive-asset-id" title={asset.assetId}>
+                        {asset.assetId}
+                      </span>
+                    </td>
                     <td>{asset.assetType}</td>
                     <td>{asset.wardId}</td>
                     <td>{asset.daysSinceMaintenance}</td>
                     <td>
-                      <strong>{asset.failureLikelihood}%</strong>
+                      <div className="predictive-likelihood-cell">
+                        <strong>{asset.failureLikelihood}%</strong>
+                        <div className="predictive-likelihood-track">
+                          <div
+                            className="predictive-likelihood-fill"
+                            style={{ width: `${Math.min(100, Number(asset.failureLikelihood || 0))}%` }}
+                          />
+                        </div>
+                      </div>
                     </td>
-                    <td>{asset.riskBand}</td>
-                    <td>{(asset.reasonSignals || []).slice(0, 2).join(", ") || "-"}</td>
+                    <td>
+                      <span
+                        className={`predictive-risk-pill ${getPredictiveRiskClass(
+                          asset.riskBand
+                        )}`}
+                      >
+                        {asset.riskBand || "Low"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="predictive-signal-list">
+                        {(asset.reasonSignals || []).length ? (
+                          (asset.reasonSignals || []).slice(0, 2).map((signal) => (
+                            <span key={`${asset.assetId}-${signal}`} className="predictive-signal-chip">
+                              {signal}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="predictive-signal-chip">-</span>
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))
               ) : (
@@ -202,7 +270,8 @@ const Dashboard = () => {
                 </tr>
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       </div>
 
