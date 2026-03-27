@@ -93,9 +93,18 @@ export const escalateGrievanceSLA = async (grievance) => {
     }
 
     if (recipients.userIds && recipients.userIds.length > 0) {
-      const specificUsers = await User.findById({ _id: { $in: recipients.userIds } });
+      const specificUsers = await User.find({
+        _id: { $in: recipients.userIds }
+      });
       usersToNotify = [...usersToNotify, ...specificUsers];
     }
+
+    // Remove duplicates if same user is matched by both role and explicit user list.
+    usersToNotify = Array.from(
+      new Map(usersToNotify.map((user) => [String(user._id), user])).values()
+    );
+
+    const escalationStatus = usersToNotify.length > 0 ? "notified" : "pending";
 
     // Create escalation history
     const escalationHistory = await EscalationHistory.create({
@@ -108,7 +117,7 @@ export const escalateGrievanceSLA = async (grievance) => {
       escalated_at: new Date(),
       escalated_to_roles: applicableRule.escalate_to_roles,
       escalated_to_users: usersToNotify.map(u => u._id),
-      escalation_status: "notified"
+      escalation_status: escalationStatus
     });
 
     // Update grievance
@@ -119,6 +128,12 @@ export const escalateGrievanceSLA = async (grievance) => {
         sla_status: "Breached"
       }
     );
+
+    if (usersToNotify.length === 0) {
+      console.warn(
+        `[SLAEscalation] Escalated grievance ${grievance.grievance_id} but found no recipients to notify`
+      );
+    }
 
     // Send notifications to all recipients
     for (const user of usersToNotify) {

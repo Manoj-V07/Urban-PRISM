@@ -189,6 +189,8 @@ export const sendSLABreachNotification = async ({
   ward_id,
   escalation_rule_name
 }) => {
+  const safeComplaintText = typeof complaint_text === "string" ? complaint_text : "No complaint description provided";
+
   const breachDuration = breach_hours < 24
     ? `${breach_hours} hour${breach_hours !== 1 ? 's' : ''}`
     : `${(breach_hours / 24).toFixed(1)} day${breach_hours / 24 !== 1 ? 's' : ''}`;
@@ -206,7 +208,7 @@ export const sendSLABreachNotification = async ({
         { label: "Category", value: category },
         { label: "Severity", value: severity },
         { label: "Ward ID", value: ward_id },
-        { label: "Complaint", value: complaint_text.substring(0, 100) + "..." },
+        { label: "Complaint", value: safeComplaintText.substring(0, 100) + "..." },
         { label: "Breach Duration", value: breachDuration, emphasize: true },
         { label: "Escalation Rule", value: escalation_rule_name }
       ],
