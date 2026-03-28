@@ -20,12 +20,12 @@ const FieldWorkers = () => {
   const { data: workers, loading, refetch } = useFetch(buildUrl());
   const [toast, setToast] = useState(null);
   const [selectedWorker, setSelectedWorker] = useState(null);
-  const [lastUpdated, setLastUpdated] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(() => new Date());
   const LIVE_REFRESH_MS = 12000;
 
   const liveMetrics = useMemo(() => {
     const list = workers || [];
-    const now = Date.now();
+    const now = lastUpdated.getTime();
     const onlineWindowMs = 3 * 60 * 1000;
 
     const verifiedWorkers = list.filter((w) => w.isVerified);
@@ -60,7 +60,7 @@ const FieldWorkers = () => {
         return acc;
       }, {}),
     };
-  }, [workers]);
+  }, [lastUpdated, workers]);
 
   useEffect(() => {
     setLastUpdated(new Date());

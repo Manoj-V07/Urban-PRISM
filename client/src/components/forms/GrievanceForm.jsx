@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
+import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
 import api from "../../api/axios";
 import ENDPOINTS from "../../api/endpoints";
 import useVoiceInput from "../../hooks/useVoiceInput";
@@ -70,23 +72,53 @@ const GrievanceForm = ({ onSuccess, onError }) => {
     }
   };
 
-  const handleGetLocation = () => {
-    if (navigator.geolocation) {
-      setGettingLocation(true);
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setForm((prev) => ({
-            ...prev,
-            latitude: pos.coords.latitude.toString(),
-            longitude: pos.coords.longitude.toString(),
-          }));
-          setGettingLocation(false);
-        },
-        () => {
-          setGettingLocation(false);
-          onError?.("Failed to get location");
+  const handleGetLocation = async () => {
+    setGettingLocation(true);
+
+    try {
+      if (Capacitor.isNativePlatform()) {
+        const permissions = await Geolocation.requestPermissions();
+        const locationPermission = permissions.location;
+
+        if (locationPermission !== "granted") {
+          throw new Error("Location permission denied");
         }
-      );
+
+        const pos = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 5000,
+        });
+
+        setForm((prev) => ({
+          ...prev,
+          latitude: pos.coords.latitude.toString(),
+          longitude: pos.coords.longitude.toString(),
+        }));
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        throw new Error("Geolocation not supported on this device");
+      }
+
+      const pos = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 5000,
+        });
+      });
+
+      setForm((prev) => ({
+        ...prev,
+        latitude: pos.coords.latitude.toString(),
+        longitude: pos.coords.longitude.toString(),
+      }));
+    } catch (err) {
+      onError?.(err.message || "Failed to get location");
+    } finally {
+      setGettingLocation(false);
     }
   };
 

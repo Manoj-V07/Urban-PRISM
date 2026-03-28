@@ -1,6 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { Capacitor } from "@capacitor/core";
+import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 
-const SpeechRecognition =
+const WebSpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
 /**
@@ -23,10 +25,13 @@ const useVoiceInput = ({
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interim, setInterim] = useState("");
+  const [nativeSupported, setNativeSupported] = useState(false);
+  const [nativePermissionGranted, setNativePermissionGranted] = useState(false);
   const recognitionRef = useRef(null);
   const onResultRef = useRef(onResult);
   const onInterimRef = useRef(onInterim);
-  const supported = !!SpeechRecognition;
+  const isNative = Capacitor.isNativePlatform();
+  const supported = isNative ? nativeSupported : !!WebSpeechRecognition;
 
   // Keep callback refs up to date
   useEffect(() => {
@@ -49,10 +54,99 @@ const useVoiceInput = ({
     };
   }, []);
 
-  const start = useCallback(() => {
-    if (!SpeechRecognition) return;
+  // Native speech recognition setup (Capacitor)
+  useEffect(() => {
+    if (!isNative) return undefined;
 
-    const recognition = new SpeechRecognition();
+    let disposed = false;
+    let partialResultsListener = null;
+    let listeningListener = null;
+
+    const setupNativeSpeech = async () => {
+      try {
+        const availability = await SpeechRecognition.available();
+        if (!disposed) {
+          setNativeSupported(!!availability.available);
+        }
+
+        const permissions = await SpeechRecognition.checkPermissions();
+        if (!disposed) {
+          setNativePermissionGranted(permissions.speechRecognition === "granted");
+        }
+
+        partialResultsListener = await SpeechRecognition.addListener("partialResults", (data) => {
+          const text = data?.matches?.[0] || "";
+          if (!text) return;
+
+          setInterim(text);
+          setTranscript(text);
+          onInterimRef.current?.(text);
+          onResultRef.current?.(text);
+        });
+
+        listeningListener = await SpeechRecognition.addListener("listeningState", (data) => {
+          const isListening = !!data?.status;
+          setListening(isListening);
+          if (!isListening) {
+            setInterim("");
+          }
+        });
+      } catch (err) {
+        console.warn("[VoiceInput] native setup error:", err);
+        if (!disposed) {
+          setNativeSupported(false);
+        }
+      }
+    };
+
+    setupNativeSpeech();
+
+    return () => {
+      disposed = true;
+      try {
+        partialResultsListener?.remove?.();
+        listeningListener?.remove?.();
+      } catch {
+        // ignore cleanup failures
+      }
+    };
+  }, [isNative]);
+
+  const start = useCallback(() => {
+    if (isNative) {
+      const startNativeRecognition = async () => {
+        try {
+          if (!nativePermissionGranted) {
+            const permission = await SpeechRecognition.requestPermissions();
+            const granted = permission.speechRecognition === "granted";
+            setNativePermissionGranted(granted);
+            if (!granted) return;
+          }
+
+          setTranscript("");
+          setInterim("");
+          setListening(true);
+
+          await SpeechRecognition.start({
+            language: lang,
+            maxResults: 1,
+            prompt: "Speak now",
+            partialResults: true,
+            popup: false,
+          });
+        } catch (err) {
+          console.warn("[VoiceInput] native start error:", err);
+          setListening(false);
+        }
+      };
+
+      startNativeRecognition();
+      return;
+    }
+
+    if (!WebSpeechRecognition) return;
+
+    const recognition = new WebSpeechRecognition();
     recognition.lang = lang;
     recognition.continuous = continuous;
     recognition.interimResults = true;
@@ -85,7 +179,7 @@ const useVoiceInput = ({
     };
 
     recognition.onerror = (event) => {
-      console.warn("[VoiceInput] error:", event.error);
+      console.warn("[VoiceInput] web error:", event.error);
       setListening(false);
     };
 
@@ -98,13 +192,22 @@ const useVoiceInput = ({
     setTranscript("");
     setInterim("");
     recognition.start();
-  }, [lang, continuous]);
+  }, [continuous, isNative, lang, nativePermissionGranted]);
 
   const stop = useCallback(() => {
+    if (isNative) {
+      SpeechRecognition.stop().catch(() => {
+        // ignore native stop failures
+      });
+      setListening(false);
+      setInterim("");
+      return;
+    }
+
     if (recognitionRef.current) {
       recognitionRef.current.stop();
     }
-  }, []);
+  }, [isNative]);
 
   return { listening, supported, start, stop, transcript, interim };
 };

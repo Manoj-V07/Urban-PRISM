@@ -6,12 +6,14 @@ import api from './api/axios'
 import ENDPOINTS from './api/endpoints'
 import { registerServiceWorker } from './pwa/registerServiceWorker'
 import { setupOfflineComplaintQueueSync } from './offline/complaintQueue'
+import { initializeNativeShell } from './mobile/initializeNativeShell'
 
 registerServiceWorker()
 setupOfflineComplaintQueueSync({
   apiClient: api,
   createEndpoint: ENDPOINTS.GRIEVANCES.CREATE,
 })
+initializeNativeShell()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

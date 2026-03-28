@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import useFetch from "../hooks/useFetch";
 import api, { API_ORIGIN } from "../api/axios";
 import ENDPOINTS from "../api/endpoints";

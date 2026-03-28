@@ -73,3 +73,11 @@ coverage/
 # =========================
 .cache/
 .eslintcache
+
+# =========================
+# Capacitor / Android
+# =========================
+android/.gradle/
+android/local.properties
+android/app/build/
+android/build/

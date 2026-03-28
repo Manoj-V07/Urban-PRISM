@@ -1,17 +1,33 @@
 import axios from "axios";
+import { Capacitor } from "@capacitor/core";
 import { getToken } from "../utils/helpers";
 
 const LOCAL_API_ORIGIN = "http://localhost:5000";
+const ANDROID_EMULATOR_API_ORIGIN = "http://10.0.2.2:5000";
 const DEPLOYED_API_ORIGIN = "https://urban-prism.onrender.com";
 
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 const configuredApiOrigin = import.meta.env.VITE_API_URL;
+const configuredNativeApiOrigin = import.meta.env.VITE_NATIVE_API_URL;
+
+const isNativePlatform = Capacitor.isNativePlatform();
+
 const isLocalhost =
   typeof window !== "undefined" &&
   ["localhost", "127.0.0.1"].includes(window.location.hostname);
 
+// Default native traffic to deployed API so physical devices work out of the box.
+// For local backend development, set VITE_NATIVE_API_URL explicitly.
+const defaultNativeOrigin = DEPLOYED_API_ORIGIN;
+
+const inferredApiOrigin = isNativePlatform
+  ? configuredNativeApiOrigin || defaultNativeOrigin
+  : isLocalhost
+    ? LOCAL_API_ORIGIN
+    : DEPLOYED_API_ORIGIN;
+
 export const API_ORIGIN =
-  configuredApiOrigin || (isLocalhost ? LOCAL_API_ORIGIN : DEPLOYED_API_ORIGIN);
+  configuredApiOrigin || inferredApiOrigin;
 export const API_BASE_URL = configuredApiBaseUrl || `${API_ORIGIN}/api`;
 
 const api = axios.create({

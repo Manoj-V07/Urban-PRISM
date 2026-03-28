@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { formatDate, formatCurrency } from "../../utils/formatters";
 
 const AssetEditModal = ({ asset, onSave, onCancel, saving }) => {
   const [maintenanceDate, setMaintenanceDate] = useState("");

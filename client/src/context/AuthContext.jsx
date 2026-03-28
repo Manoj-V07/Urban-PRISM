@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState } from "react";
 import api from "../api/axios";
 import ENDPOINTS from "../api/endpoints";
@@ -32,7 +33,11 @@ export const AuthProvider = ({ children }) => {
       setUserState(data);
       return data;
     } catch (err) {
-      const msg = err.response?.data?.message || "Login failed";
+      const msg =
+        err.response?.data?.message ||
+        (err.code === "ERR_NETWORK"
+          ? "Unable to reach server. Check mobile API URL and backend status."
+          : "Login failed");
       setError(msg);
       throw new Error(msg);
     } finally {
@@ -63,7 +68,11 @@ export const AuthProvider = ({ children }) => {
       setUserState(data);
       return data;
     } catch (err) {
-      const msg = err.response?.data?.message || "Registration failed";
+      const msg =
+        err.response?.data?.message ||
+        (err.code === "ERR_NETWORK"
+          ? "Unable to reach server. Check mobile API URL and backend status."
+          : "Registration failed");
       setError(msg);
       throw new Error(msg);
     } finally {

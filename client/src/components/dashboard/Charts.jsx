@@ -278,12 +278,6 @@ const ComplaintSummary = ({ data, title }) => {
   const resolvePct = totals.total > 0 ? Math.round((totals.resolved / totals.total) * 100) : 0;
   const pendPct = totals.total > 0 ? Math.round((totals.pending / totals.total) * 100) : 0;
 
-  // Oldest complaint across all months
-  const oldest = data
-    .map((m) => m.oldestComplaint)
-    .filter(Boolean)
-    .sort()[0];
-
   // SVG donut params
   const size = 120;
   const stroke = 12;
