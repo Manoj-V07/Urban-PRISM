@@ -1,295 +1,192 @@
-# URBAN-PRISM
+# Urban-PRISM
 
-Smart Urban Grievance Management & Infrastructure Prioritization System
-
-**Built with MERN Stack**
+Smart Urban Grievance Management and Infrastructure Prioritization Platform
 
 ## Overview
+Urban-PRISM is a full-stack civic operations platform for municipality grievance management. It combines AI-assisted complaint intake, geospatial clustering, SLA governance, field-worker workflows, and public tracking into a single operational system.
 
-URBAN-PRISM is a full-stack smart governance platform designed for Tamil Nadu urban infrastructure management. The system enables citizens to register civic complaints with geolocation and image evidence. Complaints are intelligently processed, clustered to avoid duplicates, mapped to infrastructure assets, and analyzed to compute risk scores and maintenance priorities.
+The project is designed around Chennai/Tamil Nadu civic workflows and supports Admin, Citizen, and FieldWorker roles.
 
-The platform transforms raw grievance data into actionable insights using geospatial logic, rule-based risk modeling, and interactive dashboards.
+## What Is Implemented
 
-This project is developed using the MERN stack and follows production-grade software architecture practices.
+### Citizen workflows
+- Register/login with role-aware access
+- Submit grievance with image and location
+- AI-assisted category/severity/summary generation
+- Duplicate pre-check before submission
+- Track grievances and status updates
+- Public tracker access by grievance ID
+- Post-resolution feedback (rating + comment)
+- Multilingual UI (English/Tamil)
+- Voice input support for complaint text
+- Offline complaint queue (auto-sync when online)
 
-## Problem Statement
+### Admin workflows
+- Dashboard risk and trend views
+- Asset CRUD management
+- Cluster monitoring
+- Risk engine execution
+- Field-worker verification and filtering
+- Task assignment and completion verification
+- SLA rule and escalation rule management
+- Ward scorecards and ward comparison analytics
+- Predictive maintenance insights
 
-Traditional grievance management systems lack automation, geospatial intelligence, and priority-based decision-making. Duplicate complaints caused by minor GPS variations inflate issue counts and distort analysis.
+### Field worker workflows
+- View assigned tasks
+- Start work
+- Complete with proof image and notes
 
-URBAN-PRISM addresses these issues by:
+### Notifications and automation
+- Email notifications for lifecycle events
+- WhatsApp notifications for grievance acknowledgement and status updates
+- Cluster alert scheduler (every 3 days)
+- SLA breach scheduler (hourly auto-escalation checks)
 
-- Eliminating duplicate complaints using spatial clustering
-- Mapping grievances to responsible infrastructure assets
-- Computing risk scores using complaint volume and severity
-- Generating ranked priority lists for maintenance planning
-- Providing analytical dashboards for administrators
+## Architecture
+- Frontend: React 19 + Vite 7 (SPA)
+- Backend: Node.js + Express 5
+- Database: MongoDB + Mongoose
+- AI: Groq + Google Gemini
+- Messaging: SMTP + Twilio WhatsApp
+- PWA: vite-plugin-pwa
+- Mobile shell: Capacitor Android
 
-## System Architecture
+## Repo Structure
+- client: React frontend app
+- server: Express backend API
+- docs: detailed project and implementation documentation
+- docker: Docker artifacts
 
-```
-Frontend (React) → REST API (Node + Express) → MongoDB
-Background Processing → Clustering → Mapping → Risk Engine → Priority Engine → Dashboard
-```
+## API Surface
 
-The system is divided into:
+### Auth
+- POST /api/auth/register
+- POST /api/auth/login
 
-- Citizen Module
-- Admin Module
-- Intelligence Engine
-- Geospatial Processing Layer
-- Notification System
+### Users
+- GET /api/users/profile
+- GET /api/users/admin
 
-## Technology Stack (MERN)
+### Grievances
+- POST /api/grievances
+- GET /api/grievances/my
+- POST /api/grievances/duplicate-check
+- PATCH /api/grievances/:id/status
 
-### Backend
+### Public
+- GET /api/public/track/:grievanceId
+- POST /api/public/feedback
+- POST /api/public/translate
 
-- Node.js
-- Express.js
+### Dashboard
+- GET /api/dashboard/top
+- GET /api/dashboard/summary
+- GET /api/dashboard/risk-trend
+- GET /api/dashboard/complaints
+- GET /api/dashboard/predictive-maintenance
+- POST /api/dashboard/send-alert
+- GET /api/dashboard/ward/:ward_id/scorecard
+- GET /api/dashboard/wards/scorecards
+- GET /api/dashboard/wards/comparison
+
+### SLA
+- GET /api/sla/rules
+- POST /api/sla/rules
+- PATCH /api/sla/rules/:id
+- DELETE /api/sla/rules/:id
+- GET /api/sla/escalation-rules
+- POST /api/sla/escalation-rules
+- PATCH /api/sla/escalation-rules/:id
+- GET /api/sla/grievance/:grievanceId/status
+- GET /api/sla/grievance/:grievanceId/escalations
+- POST /api/sla/grievance/:grievanceId/update-status
+- GET /api/sla/escalations/summary
+- GET /api/sla/breached-grievances
+
+### Other domains
+- Clusters: GET /api/clusters
+- Assets: GET/POST/PUT/DELETE /api/assets
+- Risk: POST /api/risk/run
+- AI: POST /api/ai/analyze, /api/ai/translate, /api/ai/chat
+- Field workers: /api/field-workers/*
+- Task assignments: /api/task-assignments/*
+- Health: GET /api/health
+
+## Local Setup
+
+### Prerequisites
+- Node.js 20+
 - MongoDB
-- Mongoose
-- Multer (Image Upload)
-- JWT (Authentication)
-- Winston (Logging)
-- dotenv (Environment Configuration)
 
-### Frontend
-
-- React.js
-- Vite
-- Tailwind CSS
-- Axios
-- React Query
-- Zustand
-- Recharts
-- Leaflet (Maps)
-- Framer Motion
-- React Hot Toast
-
-## Dataset
-
-The system uses Tamil Nadu district-based synthetic datasets:
-
-### Assets Dataset
-
-Contains infrastructure details:
-
-- asset_id
-- asset_type
-- latitude & longitude
-- district_name
-- ward_id
-- last_maintenance_date
-- estimated_repair_cost
-- service_radius
-
-### Grievances Dataset
-
-Contains complaint details:
-
-- grievance_id
-- category
-- latitude & longitude
-- district_name
-- ward_id
-- complaint_text
-- complaint_date
-- severity_level
-- status
-- complaint_volume
-
-Coordinates are generated district-wise with controlled GPS variations to support realistic clustering.
-
-## Core Features
-
-### Citizen Module
-
-- Register/Login
-- Submit grievance with location (Map-based picker)
-- Upload images
-- Track complaint status
-- Receive grievance acknowledgement email on submission
-- Receive email notification on status updates
-- Receive WhatsApp notification on complaint submission and every status update
-
-### Admin Module
-
-- View all grievances
-- View infrastructure assets
-- Add new infrastructure assets
-- Edit existing infrastructure assets
-- Filter by district, ward, category
-- View interactive maps
-- View priority ranking
-- Analyze risk trends
-
-## Intelligent Clustering
-
-Duplicate complaints are prevented using rule-based spatial clustering.
-
-**Criteria:**
-
-- Same district
-- Same ward
-- Same category
-- Distance within threshold (e.g., 20 meters)
-- Active status
-
-Instead of creating multiple records, the system increases the complaint_volume field in the existing grievance record.
-
-This prevents artificial inflation of risk.
-
-## Asset–Grievance Mapping
-
-Each grievance is mapped to an asset using:
-
-- District + ward filtering
-- Category-to-asset type mapping
-- Nearest asset search using MongoDB geospatial query
-- Distance validation using service_radius
-
-Only assets within their service radius are considered valid matches.
-
-## Risk Engine
-
-Risk score is calculated using:
-
-- Complaint volume
-- Severity weight
-- Complaint recency
-- Maintenance age
-- Repair cost factor
-
-Risk is normalized between 0 and 100.
-
-## Priority Engine
-
-Assets are ranked using:
-
-- Risk score
-- Complaint frequency
-- Severity distribution
-
-The system generates a stable priority list for maintenance planning.
-
-## Email Notification System
-
-When a grievance status is updated:
-
-- The registered user receives an automated email
-- SMTP configuration is managed through environment variables
-- Email failures are logged for retry
-
-## WhatsApp Notification System
-
-When a grievance is submitted or its status changes:
-
-- The citizen also receives a WhatsApp notification
-- Twilio WhatsApp API is used for message delivery
-- If WhatsApp config or user number is missing, the API request still succeeds and logs the skip/failure
-
-## Security Features
-
-- JWT-based authentication
-- Role-based access control
-- Input validation & sanitization
-- Rate limiting
-- Centralized error handling
-- Structured logging
-- Environment variable protection
-
-## Map Features
-
-- Interactive Leaflet map
-- Asset markers
-- Grievance markers
-- Risk-based color coding
-- Heatmap visualization
-- District & ward filtering
-
-## Setup Instructions
-
-### 1. Clone Repository
-
+### 1) Install server
 ```bash
-git clone <repository_url>
-cd urban-prism
-```
-
-### 2. Backend Setup
-
-```bash
-cd backend
+cd server
 npm install
 ```
 
-Create `.env` file:
-
+Create server .env with at least:
 ```env
 PORT=5000
-MONGODB_URI=your_mongodb_connection
-JWT_SECRET=your_secret
+MONGO_URI=your_mongodb_uri
+JWT_SECRET=your_jwt_secret
+GROQ_API_KEY=your_groq_key
+GEMINI_API_KEY=your_gemini_key
 SMTP_HOST=your_smtp_host
-SMTP_PORT=your_port
-SMTP_USER=your_email
-SMTP_PASS=your_password
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
+SMTP_PORT=587
+SMTP_USER=your_smtp_user
+SMTP_PASS=your_smtp_pass
+TWILIO_ACCOUNT_SID=your_twilio_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
 WHATSAPP_DEFAULT_COUNTRY_CODE=+91
 ```
 
-Run backend:
-
+Run server:
 ```bash
 npm run dev
 ```
 
-### 3. Frontend Setup
-
+### 2) Install client
 ```bash
-cd frontend
+cd ../client
 npm install
 npm run dev
 ```
 
-## Importing Dataset
-
-Place `assets.csv` and `grievances.csv` in the backend data directory and run the import script:
-
-```bash
-npm run import
+Optional client env:
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_URL=http://localhost:5000/api
 ```
 
-Ensure MongoDB has 2dsphere index on asset location.
+## Mobile and PWA
 
-## Login Credentials
+### PWA
+```bash
+cd client
+npm run build
+npm run preview
+```
 
-Use the login credentials to sign in
+### Android (Capacitor)
+```bash
+cd client
+npm run mobile:sync
+npm run mobile:open:android
+```
 
-Admin 
-Email : suriya@gmail.com
-Password : 123456
+## Documentation
+- Full technical documentation: docs/Urban-PRISM-Complete-Documentation.md
+- SLA details: SLA_IMPLEMENTATION_GUIDE.md
+- Testing checklist: TESTING_GUIDE.md
 
-User 
-Email : jayasuriyajs45@gmail.com
-Password : 123456
-
-Field-Worker
-Email : kanwalkishore24@gmail.com
-Password : 123456
-
-## Future Enhancements
-
-- Predictive maintenance using machine learning
-- NLP-based complaint classification
-- Real-time updates using WebSockets
-- IoT sensor data integration
-- Budget optimization engine
+## Current Status
+- End-to-end grievance lifecycle is implemented
+- SLA and escalation governance is implemented
+- Public tracking and citizen feedback are implemented
+- Ward analytics and predictive maintenance are implemented
+- Automated tests are present as placeholders and need expansion
 
 ## License
-
-This project is developed for academic and research purposes.
-
-## Authors
-
-URBAN-PRISM Development Team
+Academic and research usage (project-specific).
