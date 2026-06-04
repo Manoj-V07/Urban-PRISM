@@ -8,8 +8,7 @@ import {
   sendGrievanceWhatsAppAcknowledgement,
   sendGrievanceWhatsAppStatusUpdate
 } from "../services/whatsappService.js";
-import { analyzeComplaint } from "../services/aiService.js";
-import { verifyComplaintImage } from "../services/aiService.js";
+import { analyzeComplaint, verifyComplaintImage, classifyImageCategory } from "../services/aiService.js";
 import { initializeSLAForGrievance } from "../services/slaEngineService.js";
 
 const DUPLICATE_SEARCH_DISTANCE_METERS = 600;
@@ -136,6 +135,23 @@ export const createGrievance = async (req, res, next) => {
         message: "Image does not match complaint",
         reason: check.reason
       });
+    }
+
+    // Classify image category and ensure it matches the AI/text category
+    try {
+      const imageCategory = await classifyImageCategory(req.file.path);
+      const normalize = (s) => String(s || "").toLowerCase().trim();
+
+      if (imageCategory && finalCategory && normalize(imageCategory) !== normalize(finalCategory)) {
+        return res.status(400).json({
+          success: false,
+          message: "Image category does not match complaint category",
+          reason: `image:${imageCategory} vs text:${finalCategory}`
+        });
+      }
+    } catch (imgErr) {
+      console.warn("Image classification failed:", imgErr.message);
+      // non-blocking: fall back to previous verification result
     }
 
     const grievance = await Grievance.create({
