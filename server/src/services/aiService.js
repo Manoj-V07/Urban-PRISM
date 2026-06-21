@@ -368,6 +368,47 @@ Reply ONLY in JSON:
   return JSON.parse(jsonMatch[0]);
 };
 
+/**
+ * Classify image into one of the known complaint categories
+ */
+export const classifyImageCategory = async (imagePath) => {
+  if (!imagePath || !fs.existsSync(imagePath)) {
+    throw new Error("Image path missing for classification");
+  }
+
+  const imageBase64 = fs.readFileSync(imagePath, { encoding: "base64" });
+
+  const prompt = `\nClassify the following image into ONE of these categories exactly: \nRoad Damage | Streetlight Failure | Drain Blockage | Water Leakage | Footpath Damage | Other\n\nReturn ONLY valid JSON:\n{ "category": "<one of the above>" }\n`;
+
+  const response = await getGenAI().models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: mimeFromPath(imagePath),
+              data: imageBase64
+            }
+          }
+        ]
+      }
+    ]
+  });
+
+  const output = String(response.text || "");
+  const jsonMatch = output.match(/\{[\s\S]*\}/);
+
+  if (!jsonMatch) {
+    throw new Error("Invalid image classification response");
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  return String(parsed.category || "Other").trim();
+};
+
 const mimeFromPath = (filePath) => {
   const ext = path.extname(String(filePath || "")).toLowerCase();
   if (ext === ".png") return "image/png";
