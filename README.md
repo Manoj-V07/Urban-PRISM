@@ -11,8 +11,9 @@ The project is designed around Chennai/Tamil Nadu civic workflows and supports A
 
 ### Citizen workflows
 - Register/login with role-aware access
-- Submit grievance with image and location
+- Submit grievance with automatic geolocation extraction from geotagged image EXIF metadata (using exifr)
 - AI-assisted category/severity/summary generation
+- AI-based image classification and category matching verification (uses Gemini 2.5 Flash)
 - Duplicate pre-check before submission
 - Track grievances and status updates
 - Public tracker access by grievance ID
@@ -22,7 +23,7 @@ The project is designed around Chennai/Tamil Nadu civic workflows and supports A
 - Offline complaint queue (auto-sync when online)
 
 ### Admin workflows
-- Dashboard risk and trend views
+- Dashboard risk and trend views with downloadable PDF reports (Executive Summary, Category & Ward Breakdown, Top Risk Clusters, and Predictive Maintenance data)
 - Asset CRUD management
 - Cluster monitoring
 - Risk engine execution
@@ -44,10 +45,10 @@ The project is designed around Chennai/Tamil Nadu civic workflows and supports A
 - SLA breach scheduler (hourly auto-escalation checks)
 
 ## Architecture
-- Frontend: React 19 + Vite 7 (SPA)
+- Frontend: React 19 + Vite 7 (SPA) with jsPDF & jsPDF-AutoTable for PDF reporting and exifr for image GPS parsing
 - Backend: Node.js + Express 5
 - Database: MongoDB + Mongoose
-- AI: Groq + Google Gemini
+- AI: Groq + Google Gemini (Gemini 2.5 Flash for image classification)
 - Messaging: SMTP + Twilio WhatsApp
 - PWA: vite-plugin-pwa
 - Mobile shell: Capacitor Android

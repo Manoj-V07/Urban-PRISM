@@ -1,6 +1,6 @@
 # Urban-PRISM Complete Project Documentation
 
-Last updated: 2026-04-02
+Last updated: 2026-06-21
 
 ## 1) Project Identity
 - Project name: Urban-PRISM
@@ -20,9 +20,9 @@ This results in repeated reports, delayed action, weak prioritization, and limit
 
 ## 3) Solution Implemented in Urban-PRISM
 Urban-PRISM provides an end-to-end civic operations stack with:
-- Citizen complaint intake with geolocation and mandatory image evidence
+- Citizen complaint intake with automatic geolocation extraction from mandatory geotagged image evidence
 - AI-powered complaint analysis (category, severity, summary)
-- AI complaint-image relevance validation before acceptance
+- AI complaint-image relevance validation and category classification matching before acceptance
 - Citizen-side duplicate pre-check before final submission
 - Geospatial clustering and complaint-volume consolidation
 - Asset mapping using nearest-asset search and fallback matching logic
@@ -30,7 +30,7 @@ Urban-PRISM provides an end-to-end civic operations stack with:
 - SLA rule engine with due dates, status tracking, and escalation
 - Scheduled SLA breach checks and escalation notifications
 - Public complaint tracking timeline and post-resolution citizen feedback
-- Admin dashboards: risk, trends, ward scorecards, cross-ward comparison
+- Admin dashboards: risk, trends, ward scorecards, cross-ward comparison, and PDF report generation
 - Predictive maintenance insights for top-risk assets
 - Field worker assignment, execution, proof upload, and verification loop
 - Email + WhatsApp notifications for lifecycle events
@@ -73,6 +73,8 @@ Primary flow:
 - i18next + react-i18next
 - vite-plugin-pwa
 - Capacitor packages + speech recognition plugin
+- jspdf + jspdf-autotable (for PDF report generation)
+- exifr (for client-side EXIF GPS metadata extraction)
 
 ## 6) Backend Features and Modules
 
@@ -104,6 +106,7 @@ Implemented:
 - Create grievance with mandatory image and coordinates
 - AI analysis fallback to manual category/severity
 - AI image-to-text validation
+- AI image classification category verification (uses Gemini 2.5 Flash to ensure image category aligns with text category, returning 400 Bad Request if they mismatch)
 - UUID grievance ID generation
 - SLA initialization on create
 - Clustering trigger after save
@@ -215,6 +218,7 @@ Implemented:
 - Translation
 - Chat assistant
 - Public translation support for tracker
+- Image category classification (classifies images into Road Damage, Streetlight Failure, Drain Blockage, Water Leakage, Footpath Damage, or Other using Gemini 2.5 Flash)
 
 AI endpoints:
 - POST /api/ai/analyze
@@ -261,6 +265,7 @@ Scheduled jobs:
 
 ### 7.2 Citizen-facing experience
 - Grievance creation and list
+- Automatic GPS EXIF geolocation extraction from uploaded images (using exifr) with strict geotagged verification
 - Duplicate warning before final submission
 - AI-assisted summary/severity/category display
 - Track complaint button into public tracker
@@ -277,7 +282,7 @@ Scheduled jobs:
 - Optional multilingual rendering via public translation API
 
 ### 7.4 Admin experience
-- Dashboard and analytics
+- Dashboard and analytics with downloadable PDF reports (Executive Summary, Category & Ward Breakdown, Top Risk Clusters, and Predictive Maintenance data)
 - Map visualization layers for assets/clusters/grievances
 - Asset CRUD interfaces
 - Field worker verification and management
@@ -464,6 +469,7 @@ Axios defaults:
 - Request correlation ID logging
 - Centralized API error handling
 - Upload validation and size/type checks
+- Grievance image category mismatch validation (prevents submission of complaints where uploaded images do not match the selected grievance category)
 - Notification failures handled as non-blocking where appropriate
 
 ## 13) Testing Status

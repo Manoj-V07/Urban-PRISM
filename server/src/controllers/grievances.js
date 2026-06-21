@@ -123,11 +123,16 @@ export const createGrievance = async (req, res, next) => {
       });
     }
 
-    // Verify image vs text
-    const check = await verifyComplaintImage(
-      req.file.path,
-      complaint_text
-    );
+    // Verify image vs text (with graceful fallback if AI service is overloaded/503)
+    let check = { match: true, reason: null };
+    try {
+      check = await verifyComplaintImage(
+        req.file.path,
+        complaint_text
+      );
+    } catch (verifyErr) {
+      console.warn("AI Image-to-text verification failed (non-blocking fallback):", verifyErr.message);
+    }
 
     if (!check.match) {
       return res.status(400).json({

@@ -522,3 +522,67 @@ Return ONLY valid JSON:
     model: "gemini-2.5-flash"
   };
 };
+
+/**
+ * Extract GPS coordinates visually from image text/watermarks
+ */
+export const extractGpsFromImageText = async (imagePath) => {
+  if (!imagePath || !fs.existsSync(imagePath)) {
+    throw new Error("Image path missing for coordinate extraction");
+  }
+
+  const imageBase64 = fs.readFileSync(imagePath, { encoding: "base64" });
+
+  const prompt = `
+You are an OCR and GPS coordinate extraction assistant.
+Read the uploaded image and locate any GPS location coordinates (latitude and longitude) printed or watermarked on the image. These watermarks typically contain "Lat", "Latitude", "Long", "Longitude", "GPS Map Camera", or similar labels followed by decimal numbers.
+For example: "Lat 10.665365° Long 77.003038°" or "Latitude: 10.665365, Longitude: 77.003038".
+
+Return ONLY a valid JSON object without markdown formatting fences, matching this format:
+{
+  "extracted": true,
+  "latitude": 10.665365,
+  "longitude": 77.003038
+}
+
+If no coordinates are printed on the image, return:
+{
+  "extracted": false,
+  "latitude": null,
+  "longitude": null
+}
+`;
+
+  const response = await getGenAI().models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: mimeFromPath(imagePath),
+              data: imageBase64
+            }
+          }
+        ]
+      }
+    ]
+  });
+
+  const output = String(response.text || "").trim();
+  const jsonMatch = output.match(/\{[\s\S]*\}/);
+
+  if (!jsonMatch) {
+    throw new Error("Invalid response from coordinate extraction");
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  return {
+    extracted: Boolean(parsed.extracted),
+    latitude: parsed.latitude ? parseFloat(parsed.latitude) : null,
+    longitude: parsed.longitude ? parseFloat(parsed.longitude) : null
+  };
+};
+

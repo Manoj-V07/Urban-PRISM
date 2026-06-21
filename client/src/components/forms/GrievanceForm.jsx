@@ -1,11 +1,10 @@
 import { useState, useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Capacitor } from "@capacitor/core";
-import { Geolocation } from "@capacitor/geolocation";
 import api from "../../api/axios";
 import ENDPOINTS from "../../api/endpoints";
 import useVoiceInput from "../../hooks/useVoiceInput";
 import Modal from "../common/Modal";
+import exifr from "exifr";
 import {
   enqueueComplaint,
   getOfflineComplaintQueueCount,
@@ -28,8 +27,8 @@ const GrievanceForm = ({ onSuccess, onError }) => {
   });
   const [voiceLanguage, setVoiceLanguage] = useState("ta-IN");
   const [image, setImage] = useState(null);
+  const [imageExifError, setImageExifError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [gettingLocation, setGettingLocation] = useState(false);
   const [imageMismatch, setImageMismatch] = useState(null);
   const [activeVoiceField, setActiveVoiceField] = useState(null);
   const [possibleDuplicates, setPossibleDuplicates] = useState([]);
@@ -69,56 +68,6 @@ const GrievanceForm = ({ onSuccess, onError }) => {
       setActiveVoiceField(fieldName);
       activeFieldRef.current = fieldName;
       setTimeout(() => startVoice(), 50);
-    }
-  };
-
-  const handleGetLocation = async () => {
-    setGettingLocation(true);
-
-    try {
-      if (Capacitor.isNativePlatform()) {
-        const permissions = await Geolocation.requestPermissions();
-        const locationPermission = permissions.location;
-
-        if (locationPermission !== "granted") {
-          throw new Error("Location permission denied");
-        }
-
-        const pos = await Geolocation.getCurrentPosition({
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 5000,
-        });
-
-        setForm((prev) => ({
-          ...prev,
-          latitude: pos.coords.latitude.toString(),
-          longitude: pos.coords.longitude.toString(),
-        }));
-        return;
-      }
-
-      if (!navigator.geolocation) {
-        throw new Error("Geolocation not supported on this device");
-      }
-
-      const pos = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000,
-          maximumAge: 5000,
-        });
-      });
-
-      setForm((prev) => ({
-        ...prev,
-        latitude: pos.coords.latitude.toString(),
-        longitude: pos.coords.longitude.toString(),
-      }));
-    } catch (err) {
-      onError?.(err.message || "Failed to get location");
-    } finally {
-      setGettingLocation(false);
     }
   };
 
@@ -323,11 +272,11 @@ const GrievanceForm = ({ onSuccess, onError }) => {
           <input
             name="latitude"
             value={form.latitude}
-            onChange={handleChange}
             placeholder={t("latitudeLabel")}
             required
             type="number"
             step="any"
+            readOnly
           />
         </div>
 
@@ -336,23 +285,18 @@ const GrievanceForm = ({ onSuccess, onError }) => {
           <input
             name="longitude"
             value={form.longitude}
-            onChange={handleChange}
             placeholder={t("longitudeLabel")}
             required
             type="number"
             step="any"
+            readOnly
           />
         </div>
       </div>
 
-      <button
-        type="button"
-        className="btn btn-outline btn-sm location-btn"
-        onClick={handleGetLocation}
-        disabled={gettingLocation}
-      >
-        {gettingLocation ? t("gettingLocation") : `📍 ${t("useMyLocation")}`}
-      </button>
+      <p className="text-muted" style={{ marginTop: "0.25rem" }}>
+        Latitude and longitude are extracted automatically from the geotagged image or text watermark.
+      </p>
 
       <div className="form-group">
         <label>{t("complaintDetailsLabel")}</label>
@@ -392,9 +336,60 @@ const GrievanceForm = ({ onSuccess, onError }) => {
         <input
           type="file"
           accept="image/*"
-          onChange={(e) => setImage(e.target.files[0])}
+          onChange={async (e) => {
+            const file = e.target.files[0];
+            setImage(file);
+            setImageExifError(null);
+            if (!file) return;
+            try {
+              const exif = await exifr.parse(file, { tiff: true, exif: true, gps: true });
+              const lat = exif?.latitude ?? exif?.GPSLatitude;
+              const lon = exif?.longitude ?? exif?.GPSLongitude;
+              if (lat && lon) {
+                setForm((prev) => ({
+                  ...prev,
+                  latitude: String(lat),
+                  longitude: String(lon),
+                }));
+                setImageExifError(null);
+                setIsLocationEditable(false);
+              } else {
+                setImageExifError("No GPS metadata in EXIF. Extracting coordinates visually from image text...");
+                
+                const formData = new FormData();
+                formData.append("image", file);
+                
+                try {
+                  const { data } = await api.post("/ai/extract-coordinates", formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                  });
+                  
+                  if (data?.success && data?.latitude && data?.longitude) {
+                    setForm((prev) => ({
+                      ...prev,
+                      latitude: String(data.latitude),
+                      longitude: String(data.longitude),
+                    }));
+                    setImageExifError(null);
+                  } else {
+                    setImageExifError("Image lacks GPS EXIF metadata and no coordinates could be extracted visually. Please upload a geotagged or watermarked image.");
+                    onError?.("Image lacks GPS EXIF metadata and no coordinates could be extracted visually.");
+                  }
+                } catch (apiErr) {
+                  console.error("Visual coordinate extraction failed:", apiErr);
+                  setImageExifError("Image lacks GPS EXIF metadata and visual extraction failed. Please upload a geotagged or watermarked image.");
+                  onError?.("Image lacks GPS EXIF metadata and visual extraction failed.");
+                }
+              }
+            } catch (err) {
+              console.error("EXIF parse error", err);
+              setImageExifError("Failed to read image EXIF. Please upload a valid image with GPS data.");
+              onError?.("Failed to read image EXIF. Please upload a valid image with GPS data.");
+            }
+          }}
           required
         />
+        {imageExifError && <div className="field-error">{imageExifError}</div>}
       </div>
 
       <button
