@@ -22,6 +22,58 @@ function normalizeText(value) {
   return String(value || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function canonicalizeCategory(value) {
+  const normalized = normalizeText(value);
+
+  if (!normalized) {
+    return null;
+  }
+
+  if (/(street\s*light|streetlight|lamp|electric|power|pole light|lighting)/.test(normalized)) {
+    return "Streetlight Failure";
+  }
+
+  if (normalized === "streetlight" || normalized === "street light" || normalized === "street light issue") {
+    return "Streetlight Failure";
+  }
+
+  if (/(drain|drainage|sewer|sewage|blockage|clog|overflow|stagnation)/.test(normalized)) {
+    return "Drain Blockage";
+  }
+
+  if (/(water|leak|pipe|tap|supply|plumb)/.test(normalized)) {
+    return "Water Leakage";
+  }
+
+  if (/(road|pothole|pavement|footpath|bridge|crack)/.test(normalized)) {
+    return "Road Damage";
+  }
+
+  if (/(garbage|waste|trash|sanitation|litter|dump|debris)/.test(normalized)) {
+    return "Other";
+  }
+
+  if (normalized === "others" || normalized === "other") {
+    return "Other";
+  }
+
+  if (normalized === "streetlight failure") {
+    return "Streetlight Failure";
+  }
+
+  return value.trim();
+}
+
+function isSpecificComplaintCategory(value) {
+  return [
+    "Road Damage",
+    "Streetlight Failure",
+    "Drain Blockage",
+    "Water Leakage",
+    "Footpath Damage"
+  ].includes(value);
+}
+
 function tokenize(value) {
   const words = normalizeText(value).split(" ").filter(Boolean);
   return words.filter((word) => word.length > 2 && !STOP_WORDS.has(word));
@@ -114,7 +166,7 @@ export const createGrievance = async (req, res, next) => {
     }
     // ---------------------------------------------
 
-    const finalCategory = aiResult?.category || category;
+    const finalCategory = canonicalizeCategory(aiResult?.category || category || complaint_text);
     const finalSeverity = aiResult?.severity || severity_level;
 
     if (!finalCategory || !finalSeverity) {
@@ -145,13 +197,19 @@ export const createGrievance = async (req, res, next) => {
     // Classify image category and ensure it matches the AI/text category
     try {
       const imageCategory = await classifyImageCategory(req.file.path);
-      const normalize = (s) => String(s || "").toLowerCase().trim();
+      const normalizedImageCategory = canonicalizeCategory(imageCategory);
+      const normalizedFinalCategory = canonicalizeCategory(finalCategory);
 
-      if (imageCategory && finalCategory && normalize(imageCategory) !== normalize(finalCategory)) {
+      if (
+        normalizedImageCategory &&
+        isSpecificComplaintCategory(normalizedImageCategory) &&
+        normalizedFinalCategory &&
+        normalizedImageCategory !== normalizedFinalCategory
+      ) {
         return res.status(400).json({
           success: false,
           message: "Image category does not match complaint category",
-          reason: `image:${imageCategory} vs text:${finalCategory}`
+          reason: `image:${normalizedImageCategory} vs text:${normalizedFinalCategory}`
         });
       }
     } catch (imgErr) {

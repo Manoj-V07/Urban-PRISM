@@ -25,15 +25,29 @@ const isValidObjectId = (value) => {
   return /^[a-f\d]{24}$/i.test(String(value));
 };
 
+const cleanGeoJSON = (location) => {
+  if (!location || !location.coordinates) {
+    return null;
+  }
+  return {
+    type: "Point",
+    coordinates: [
+      Number(location.coordinates[0]),
+      Number(location.coordinates[1])
+    ]
+  };
+};
+
 const findNearestAsset = async ({ ward_id, district_name, location }) => {
-  if (!location) {
+  const cleanLoc = cleanGeoJSON(location);
+  if (!cleanLoc) {
     return null;
   }
 
   const nearFilter = {
     location: {
       $near: {
-        $geometry: location,
+        $geometry: cleanLoc,
         $maxDistance: ASSET_MATCH_DISTANCE
       }
     }
@@ -78,17 +92,23 @@ const findNearestAsset = async ({ ward_id, district_name, location }) => {
 };
 
 export const processGrievance = async (grievance) => {
-
   console.log("Processing grievance:", grievance._id);
+
+  // STEP 0: Check if this grievance is already clustered
+  const existingCluster = await Cluster.findOne({ grievance_ids: grievance._id });
+  if (existingCluster) {
+    console.log(`Grievance ${grievance._id} is already in cluster ${existingCluster._id}. Skipping.`);
+    return existingCluster;
+  }
 
   // STEP 1: Check if any cluster exists at all
   const clusterCount = await Cluster.countDocuments();
 
   let nearby = null;
+  const cleanGrievanceLoc = cleanGeoJSON(grievance.location);
 
   // STEP 2: Find a matching active cluster nearby (no time limit on clusters)
-  if (clusterCount > 0) {
-
+  if (clusterCount > 0 && cleanGrievanceLoc) {
     nearby = await Cluster.findOne({
       category: grievance.category,
       ward_id: grievance.ward_id,
@@ -96,7 +116,7 @@ export const processGrievance = async (grievance) => {
 
       location: {
         $near: {
-          $geometry: grievance.location,
+          $geometry: cleanGrievanceLoc,
           $maxDistance: MAX_DISTANCE
         }
       }
@@ -105,9 +125,11 @@ export const processGrievance = async (grievance) => {
 
   // STEP 3: Merge if found (avoid duplicate IDs)
   if (nearby) {
-
     const alreadyInCluster = nearby.grievance_ids.some(
-      (id) => id.toString() === grievance._id.toString()
+      (id) => {
+        const idStr = id._id ? id._id.toString() : id.toString();
+        return idStr === grievance._id.toString();
+      }
     );
 
     if (!alreadyInCluster) {
@@ -118,7 +140,7 @@ export const processGrievance = async (grievance) => {
         const mappedAsset = await findNearestAsset({
           ward_id: nearby.ward_id || grievance.ward_id,
           district_name: nearby.district_name || grievance.district_name,
-          location: nearby.location || grievance.location
+          location: cleanGeoJSON(nearby.location) || cleanGrievanceLoc
         });
 
         if (mappedAsset) {
@@ -130,13 +152,19 @@ export const processGrievance = async (grievance) => {
     }
 
     console.log("Merged into cluster:", nearby._id);
-
     return nearby;
   }
 
   // STEP 4: Find another unclustered grievance nearby.
   // Create cluster only when there are at least 2 grievances.
   const existingClusteredIds = await Cluster.distinct("grievance_ids");
+
+  if (!cleanGrievanceLoc) {
+    console.log("No valid location for grievance, skipping partner search:", grievance._id);
+    return null;
+  }
+
+  const complaintDateVal = grievance.complaint_date ? new Date(grievance.complaint_date).getTime() : Date.now();
 
   const partner = await Grievance.findOne({
     _id: {
@@ -146,14 +174,13 @@ export const processGrievance = async (grievance) => {
     category: grievance.category,
     ward_id: grievance.ward_id,
     district_name: grievance.district_name,
-    createdAt: {
-      $gte: new Date(
-        Date.now() - TIME_WINDOW * 24 * 60 * 60 * 1000
-      )
+    complaint_date: {
+      $gte: new Date(complaintDateVal - TIME_WINDOW * 24 * 60 * 60 * 1000),
+      $lte: new Date(complaintDateVal + TIME_WINDOW * 24 * 60 * 60 * 1000)
     },
     location: {
       $near: {
-        $geometry: grievance.location,
+        $geometry: cleanGrievanceLoc,
         $maxDistance: MAX_DISTANCE
       }
     }
@@ -168,27 +195,20 @@ export const processGrievance = async (grievance) => {
   const asset = await findNearestAsset({
     ward_id: grievance.ward_id,
     district_name: grievance.district_name,
-    location: grievance.location
+    location: cleanGrievanceLoc
   });
 
   // STEP 6: Create new cluster with 2 grievances
   const cluster = await Cluster.create({
-
     category: grievance.category,
-
-    location: grievance.location,
-
+    location: cleanGrievanceLoc,
     district_name: grievance.district_name,
     ward_id: grievance.ward_id,
-
     grievance_ids: [partner._id, grievance._id],
-
     complaint_volume: 2,
-
     asset_ref: asset ? asset._id : null
   });
 
   console.log("New cluster created:", cluster._id);
-
   return cluster;
 };

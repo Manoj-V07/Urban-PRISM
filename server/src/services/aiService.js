@@ -378,7 +378,16 @@ export const classifyImageCategory = async (imagePath) => {
 
   const imageBase64 = fs.readFileSync(imagePath, { encoding: "base64" });
 
-  const prompt = `\nClassify the following image into ONE of these categories exactly: \nRoad Damage | Streetlight Failure | Drain Blockage | Water Leakage | Footpath Damage | Other\n\nReturn ONLY valid JSON:\n{ "category": "<one of the above>" }\n`;
+  const prompt = `
+Classify the image into ONE of these categories only:
+Road Damage | Streetlight Failure | Drain Blockage | Water Leakage | Footpath Damage | Other
+
+Use Streetlight Failure for street light poles, lamps, lamp posts, electric poles, hanging wires around street lighting, broken or damaged lights, or clearly related electrical street-light issues.
+If the image is unclear, ambiguous, or does not clearly show one of the listed issues, return Other.
+
+Return ONLY valid JSON:
+{ "category": "<one of the above>" }
+`;
 
   const response = await getGenAI().models.generateContent({
     model: "gemini-2.5-flash",

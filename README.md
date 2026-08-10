@@ -2,6 +2,8 @@
 
 Smart Urban Grievance Management and Infrastructure Prioritization Platform
 
+Last updated: 2026-06-21
+
 ## Overview
 Urban-PRISM is a full-stack civic operations platform for municipality grievance management. It combines AI-assisted complaint intake, geospatial clustering, SLA governance, field-worker workflows, and public tracking into a single operational system.
 
@@ -52,6 +54,14 @@ The project is designed around Chennai/Tamil Nadu civic workflows and supports A
 - Messaging: SMTP + Twilio WhatsApp
 - PWA: vite-plugin-pwa
 - Mobile shell: Capacitor Android
+
+## Recent updates
+- Last major docs update: 2026-06-21 (see docs/Urban-PRISM-Complete-Documentation.md)
+- AI: image classification and image-to-text validation tightened (Gemini 2.5 Flash)
+- SLA: hourly breach scanner and auto-escalation scheduler added
+- Clustering: scheduled cluster alerts every 3 days and improved merge logic
+- Tests: lightweight AI test scripts added at `server/testAI.js` and `server/testGemini.js`
+- Frontend: continued PWA/offline improvements and Capacitor Android shell updates
 
 ## Repo Structure
 - client: React frontend app

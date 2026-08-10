@@ -2,6 +2,7 @@ import Cluster from "../models/cluster.js";
 import Grievance from "../models/grievance.js";
 import RiskHistory from "../models/riskHistory.js";
 import User from "../models/user.js";
+import Asset from "../models/asset.js";
 import { sendEmail } from "./emailService.js";
 
 /**
